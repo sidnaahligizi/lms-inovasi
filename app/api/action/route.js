@@ -7,12 +7,19 @@ export async function POST(req) {
     const { action, args } = await req.json();
 
     // 1. DASHBOARD DATA UTAMA
-    if (action === 'getDashboardData') {
+if (action === 'getDashboardData') {
       const [role, userId, , sekolah] = args; 
       let output = { logo: 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq' };
       
-      const notifs = await turso.execute("SELECT * FROM Notifications ORDER BY Tanggal DESC LIMIT 5");
-      output.notifications = notifs.rows;
+      // Mengambil Data LMS
+      try {
+          const notifs = await turso.execute("SELECT * FROM Notifications ORDER BY Tanggal DESC LIMIT 5");
+          output.notifications = notifs.rows;
+          const materials = await turso.execute("SELECT * FROM Materials");
+          output.materials = materials.rows;
+      } catch(e) {
+          output.notifications = []; output.materials = [];
+      }
 
       if (role === 'admin' || role === 'guru') {
         let exams = await turso.execute("SELECT * FROM Exams WHERE Mapel != 'SURVEY'");
@@ -21,26 +28,51 @@ export async function POST(req) {
             : await turso.execute("SELECT * FROM Users WHERE Role = 'siswa'");
             
         output.exams = exams.rows;
-        output.stats = { totalSiswa: users.rows.length, totalUjian: exams.rows.length };
+        output.stats = { 
+            totalSiswa: users.rows.length, 
+            totalUjian: exams.rows.length, 
+            activeUjian: exams.rows.filter(e => e.Status === 'Aktif').length 
+        };
+
+        // Mengambil Data CBT Lama (Peringkat & Survey)
+        const schoolRankQuery = await turso.execute(`
+            SELECT u.Sekolah, AVG(r.TotalNilai) as RataRata 
+            FROM Results r JOIN Users u ON r.SiswaID = u.ID JOIN Exams e ON r.ExamID = e.ExamID
+            WHERE e.Mapel != 'SURVEY' ${role === 'guru' ? "AND e.ShowStats IN ('Yes', 'Aktif')" : ""}
+            GROUP BY u.Sekolah ORDER BY RataRata DESC
+        `);
+        output.schoolRanks = schoolRankQuery.rows;
+
+        if (role === 'guru') {
+            const studentRankQuery = await turso.execute({
+                sql: `SELECT u.Nama, u.Kelas, e.Mapel, AVG(r.TotalNilai) as RataRata 
+                      FROM Results r JOIN Users u ON r.SiswaID = u.ID JOIN Exams e ON r.ExamID = e.ExamID 
+                      WHERE LOWER(TRIM(u.Sekolah)) = LOWER(TRIM(?)) AND e.Mapel != 'SURVEY' AND e.ShowStats IN ('Yes', 'Aktif')
+                      GROUP BY u.ID, e.Mapel ORDER BY e.Mapel ASC, RataRata DESC`,
+                args: [sekolah]
+            });
+            output.studentRanks = studentRankQuery.rows;
+        }
         
-        const materials = await turso.execute("SELECT * FROM Materials");
-        output.materials = materials.rows;
+        if (role === 'admin') {
+            const surveys = await turso.execute("SELECT * FROM Exams WHERE Mapel = 'SURVEY'");
+            output.surveys = surveys.rows;
+        }
 
       } else if (role === 'siswa') {
-        const exams = await turso.execute("SELECT * FROM Exams WHERE Mapel != 'SURVEY' AND Status = 'Aktif'");
-        output.availableExams = exams.rows;
+        const exams = await turso.execute("SELECT * FROM Exams WHERE Mapel != 'SURVEY'");
+        output.availableExams = exams.rows.filter(e => e.Status === 'Aktif');
         
         const history = await turso.execute({ 
-          sql: "SELECT r.ResultID, r.ExamID, r.WaktuSubmit, r.TotalNilai as Nilai, e.Judul, e.ShowStats FROM Results r JOIN Exams e ON r.ExamID = e.ExamID WHERE r.SiswaID = ?", 
+          sql: "SELECT r.ResultID, r.ExamID, r.WaktuSubmit, r.TotalNilai as Nilai, e.Judul, e.AllowDownloadR, e.AllowDownloadQ, e.ShowStats, r.Pelanggaran FROM Results r JOIN Exams e ON r.ExamID = e.ExamID WHERE r.SiswaID = ? AND e.Mapel != 'SURVEY'", 
           args: [userId] 
         });
         output.history = history.rows;
-        
-        const materials = await turso.execute("SELECT * FROM Materials");
-        output.materials = materials.rows;
 
-        const absenStatus = await turso.execute({ sql: "SELECT * FROM Attendance WHERE SiswaID = ? AND Tanggal = date('now')", args: [userId]});
-        output.hasAbsen = absenStatus.rows.length > 0;
+        try {
+            const absenStatus = await turso.execute({ sql: "SELECT * FROM Attendance WHERE SiswaID = ? AND Tanggal = date('now')", args: [userId]});
+            output.hasAbsen = absenStatus.rows.length > 0;
+        } catch(e) { output.hasAbsen = false; }
       }
       return NextResponse.json({ status: 'success', data: output });
     }

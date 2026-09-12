@@ -1489,62 +1489,103 @@ function renderContent(page) {
     const isGuru = String(user.Role).trim().toLowerCase() === 'guru';
     const isSiswa = String(user.Role).trim().toLowerCase() === 'siswa';
 
+    // 1. DASHBOARD UTAMA
     if (page === 'admin-home' || page === 'siswa-home') {
-        // Tampilan Notifikasi Global
         h += `<div class="alert alert-info border-0 shadow-sm rounded-4 mb-4">
-                <h5 class="fw-bold"><i class="fas fa-bell me-2"></i>Papan Pengumuman</h5>
-                <ul class="mb-0">`;
+                <h5 class="fw-bold"><i class="fas fa-bell me-2"></i>Papan Pengumuman</h5><ul class="mb-0">`;
         if(gData.notifications && gData.notifications.length > 0) {
             gData.notifications.forEach(n => h+= `<li><b>${n.Tanggal}</b>: ${n.Pesan}</li>`);
         } else { h += `<li>Belum ada pengumuman terbaru.</li>`; }
         h += `</ul>`;
-        
-        if (!isSiswa) {
-            h += `<div class="mt-3"><input type="text" id="in-notif" class="form-control form-control-sm d-inline w-75" placeholder="Ketik pengumuman baru..."> <button class="btn btn-sm btn-primary" onclick="kirimNotif()">Kirim</button></div>`;
-        }
+        if (!isSiswa) h += `<div class="mt-3"><input type="text" id="in-notif" class="form-control form-control-sm d-inline w-75" placeholder="Ketik pengumuman baru..."> <button class="btn btn-sm btn-primary" onclick="kirimNotif()">Kirim</button></div>`;
         h += `</div>`;
 
         if (isSiswa) {
             h += `<div class="card mb-4 border-0 shadow-sm rounded-4 text-white" style="background: linear-gradient(135deg, #0f5132, #d4af37);">
                     <div class="card-body p-4 text-center">
+                        <img src="${user.Foto || 'https://via.placeholder.com/60'}" class="rounded-circle mb-3 shadow" width="70" height="70" style="object-fit:cover; border:3px solid #fff;">
                         <h4 class="fw-bold">Selamat Datang, ${user.Nama}</h4>
-                        <p>Akses menu di sebelah kiri untuk melihat Modul Belajar atau Mengerjakan Ujian.</p>
-                        ${!gData.hasAbsen ? `<button class="btn btn-warning fw-bold mt-2 rounded-pill px-4" onclick="doAbsen()"><i class="fas fa-hand-paper me-2"></i>Klik Untuk Absen Hari Ini</button>` : `<span class="badge bg-success fs-6"><i class="fas fa-check me-2"></i>Anda sudah absen hari ini</span>`}
+                        <p class="mb-2">Akses menu di sebelah kiri untuk melihat Modul Belajar atau Mengerjakan Ujian.</p>
+                        ${!gData.hasAbsen ? `<button class="btn btn-warning text-dark fw-bold mt-2 rounded-pill px-4 shadow-sm" onclick="doAbsen()"><i class="fas fa-hand-paper me-2"></i>Klik Untuk Absen Hari Ini</button>` : `<span class="badge bg-success px-4 py-2 rounded-pill fs-6 shadow-sm"><i class="fas fa-check me-2"></i>Anda sudah absen hari ini</span>`}
                     </div>
                   </div>`;
+                  
+            h += `<h5 class="fw-bold mb-3 border-bottom pb-2 text-primary"><i class="fas fa-edit me-2"></i>Ujian Aktif Saat Ini</h5><div class="row g-4 mb-5">`;
+            if(!gData.availableExams || gData.availableExams.length === 0) { 
+                h += '<div class="col-12"><div class="alert alert-light border text-center py-4 rounded-4 shadow-sm text-muted">Belum ada jadwal ujian yang aktif.</div></div>'; 
+            } else {
+                gData.availableExams.forEach(e => {
+                    let btnState = '', btnText = '<i class="fas fa-play-circle me-2"></i> MULAI UJIAN', btnClass = 'btn-primary';
+                    if (e.IsFinished) { btnState = 'disabled'; btnText = 'SUDAH DIKERJAKAN'; btnClass = 'btn-secondary'; }
+                    h += `<div class="col-md-6 col-lg-4"><div class="card h-100 shadow-sm border-0 rounded-4 text-center p-4"><span class="badge bg-light text-primary border border-primary px-3 py-2 rounded-pill mb-3 fw-bold">${e.Mapel}</span><h5 class="fw-bold text-dark mb-3">${e.Judul}</h5><button class="btn ${btnClass} w-100 py-2 fw-bold rounded-pill shadow-sm" onclick="startExam('${e.ExamID}')" ${btnState}>${btnText}</button></div></div>`;
+                });
+            }
+            h += '</div>';
+        } else {
+            h += `<div class="row g-4 mb-4">
+                    <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #0f5132, #15803d); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats?.totalSiswa || 0}</h1><p class="m-0 fs-5">Total Siswa</p></div><i class="fas fa-users fa-4x opacity-50"></i></div></div></div>
+                    <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #d4af37, #b48500); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats?.totalUjian || 0}</h1><p class="m-0 fs-5">Total Ujian Aktif</p></div><i class="fas fa-folder-open fa-4x opacity-50"></i></div></div></div>
+                 </div>`;
         }
     }
 
-    if (page === 'admin-materi' || page === 'siswa-materi') {
-        h += `<div class="d-flex justify-content-between mb-4">
+    // 2. MATERI BELAJAR
+    else if (page === 'admin-materi' || page === 'siswa-materi') {
+        h += `<div class="d-flex justify-content-between mb-4 flex-wrap gap-2">
                 <h5 class="fw-bold text-primary"><i class="fas fa-book me-2"></i>Modul & Materi Belajar</h5>
-                ${!isSiswa ? `<button class="btn btn-primary rounded-pill px-3" onclick="$('#modalMateri').modal('show')"><i class="fas fa-plus"></i> Tambah Materi</button>` : ''}
-              </div><div class="row g-3">`;
+                ${!isSiswa ? `<button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" onclick="$('#modalMateri').modal('show'); $('#frm-materi')[0].reset(); $('#mat-id').val('');"><i class="fas fa-plus me-2"></i> Tambah Materi</button>` : ''}
+              </div><div class="row g-4">`;
               
-        if(!gData.materials || gData.materials.length === 0) h += `<div class="col-12 text-center text-muted">Belum ada materi diunggah.</div>`;
+        if(!gData.materials || gData.materials.length === 0) h += `<div class="col-12"><div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted"><i class="fas fa-box-open fa-3x mb-3 opacity-50"></i><br>Belum ada materi diunggah.</div></div>`;
         else {
             gData.materials.forEach(m => {
                 let icon = m.Tipe === 'pdf' ? 'fa-file-pdf text-danger' : (m.Tipe === 'youtube' ? 'fa-youtube text-danger' : 'fa-file-alt text-primary');
-                h += `<div class="col-md-6 col-lg-4">
-                        <div class="card h-100 shadow-sm border-0 rounded-4">
-                            <div class="card-body">
-                                <span class="badge bg-light text-dark mb-2">${m.Mapel} | Kls ${m.TargetKelas}</span>
-                                <h6 class="fw-bold">${m.Judul}</h6>
-                                <p class="small text-muted mb-3"><i class="fas ${icon} me-1"></i> Tipe: ${m.Tipe.toUpperCase()}</p>
-                                <button class="btn btn-outline-success btn-sm w-100 rounded-pill mb-2" onclick="lihatMateri('${encodeURIComponent(JSON.stringify(m))}')">Buka Materi</button>
-                                ${!isSiswa ? `<button class="btn btn-outline-danger btn-sm w-100 rounded-pill" onclick="hapusMateri('${m.MatID}')">Hapus</button>` : ''}
-                            </div>
-                        </div>
-                      </div>`;
+                h += `<div class="col-md-6 col-lg-4"><div class="card h-100 shadow-sm border-0 rounded-4 p-4"><span class="badge bg-light text-dark border mb-3 w-auto align-self-start px-3 py-2 rounded-pill">${m.Mapel} | Kls ${m.TargetKelas}</span><h5 class="fw-bold mb-2">${m.Judul}</h5><p class="small text-muted mb-4"><i class="fas ${icon} me-1"></i> Tipe: ${m.Tipe.toUpperCase()}</p><div class="mt-auto d-flex gap-2"><button class="btn btn-success flex-fill rounded-pill fw-bold shadow-sm" onclick="lihatMateri('${encodeURIComponent(JSON.stringify(m))}')"><i class="fas fa-eye me-1"></i> Buka</button>
+                                ${!isSiswa ? `<button class="btn btn-outline-danger rounded-circle px-2 shadow-sm" onclick="hapusMateri('${m.MatID}')"><i class="fas fa-trash"></i></button>` : ''}
+                            </div></div></div>`;
             });
         }
         h += `</div>`;
     }
     
-    // (Beri logika untuk halaman 'siswa-ujian' dan 'admin-ujian' yang menggunakan template render sebelumnya)
+    // 3. DAFTAR UJIAN ADMIN
+    else if (page === 'admin-ujian') {
+        isSurveyMode = false;
+        h += `<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">`;
+        if(!isGuru) h += `<button class="btn btn-primary shadow-sm px-4 py-2 rounded-pill fw-bold" onclick="openExamModal()"><i class="fas fa-plus me-2"></i>Buat Jadwal Baru</button>`;
+        else h += `<div><h5 class="fw-bold text-primary mb-0"><i class="fas fa-folder-open me-2"></i>Daftar Bank Soal</h5></div>`;
+        h += `</div><div class="row g-4" id="admin-ujian-list">`;
+        (gData.exams||[]).forEach(e => {
+            let actionButtons = !isGuru 
+                ? `<button class="btn btn-sm btn-outline-dark flex-fill rounded-pill fw-bold" onclick="openExamModal('${encodeURIComponent(JSON.stringify(e))}')"><i class="fas fa-cog"></i> Edit</button> <button class="btn btn-sm btn-outline-primary flex-fill rounded-pill fw-bold" onclick="manageQ('${e.ExamID}')"><i class="fas fa-list"></i> Soal</button> <button class="btn btn-sm btn-danger rounded-circle px-2" onclick="delExam('${e.ExamID}')"><i class="fas fa-trash"></i></button>`
+                : (e.AllowDownloadQ === 'Yes' ? `<button class="btn btn-success w-100 py-2 rounded-pill fw-bold shadow-sm" onclick="downloadAllQAdmin('${e.ExamID}')"><i class="fas fa-file-pdf me-2"></i> Download Soal Ini</button>` : `<div class="alert alert-light small m-0 p-2 text-center w-100 text-muted border rounded-pill"><i class="fas fa-lock me-1"></i>Dikunci Admin</div>`);
+                
+            h += `<div class="col-md-6 col-xl-4 ujian-card"><div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden"><div class="card-body p-4"><span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm mb-3">${e.Mapel}</span><h5 class="fw-bold text-dark mb-1">${e.Judul}</h5><p class="small text-muted mb-4"><i class="fas fa-clock me-1"></i> ${e.Durasi} Menit | Kls: ${e.TargetKelas}</p><div class="d-flex gap-2 mt-auto">${actionButtons}</div></div></div></div>`;
+        });
+        h += '</div>';
+    }
+
+    // 4. RIWAYAT UJIAN SISWA
+    else if (page === 'siswa-ujian') {
+        h += `<h5 class="fw-bold mb-3 text-primary"><i class="fas fa-history me-2"></i>Riwayat & Ujian Selesai</h5>`;
+        if(!gData.history || gData.history.length === 0) { h += '<p class="text-muted fst-italic">Anda belum menyelesaikan ujian TKA apa pun.</p>'; } 
+        else {
+            h += `<div class="table-responsive bg-white rounded-4 shadow-sm p-3 border"><table class="table table-hover align-middle mb-0"><thead><tr><th>Tanggal</th><th>Nama Ujian</th><th>Nilai</th><th>Status</th></tr></thead><tbody>`;
+            gData.history.forEach(r => { 
+                let displayNilai = (r.ShowStats === 'Yes' || r.ShowStats === 'Aktif') ? `<span class="badge bg-success fs-6 shadow-sm px-3 rounded-pill">${r.Nilai}</span>` : `<span class="badge bg-secondary fs-6 shadow-sm px-3 rounded-pill"><i class="fas fa-lock"></i> Rahasia</span>`;
+                h += `<tr><td class="text-muted small">${r.WaktuSubmit}</td><td><div class="fw-bold text-dark">${r.Judul}</div></td><td>${displayNilai}</td><td><span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm"><i class="fas fa-check me-1"></i> Selesai</span></td></tr>`; 
+            });
+            h += `</tbody></table></div>`;
+        }
+    }
+    
+    // 5. HALAMAN LAIN (Absensi & Data Users) akan menggunakan template standar
+    else {
+        h += `<div class="alert alert-warning text-center py-4 rounded-4"><i class="fas fa-tools fa-2x mb-2"></i><br>Halaman ini sedang dimuat atau dipindahkan ke menu utama. Silakan gunakan navigasi Dashboard.</div>`;
+    }
+
     area.html(h);
 }
-
 // FUNGSI JAVASCRIPT TAMBAHAN LMS
 function toggleKontenInput() {
     const tipe = $('#mat-tipe').val();
