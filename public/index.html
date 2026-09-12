@@ -1579,7 +1579,7 @@ function renderContent(page) {
         }
     }
     
-    // 5. HALAMAN LAIN (Absensi & Data Users) akan menggunakan template standar
+    // 5. HALAMAN LAIN
     else {
         h += `<div class="alert alert-warning text-center py-4 rounded-4"><i class="fas fa-tools fa-2x mb-2"></i><br>Halaman ini sedang dimuat atau dipindahkan ke menu utama. Silakan gunakan navigasi Dashboard.</div>`;
     }
@@ -1637,116 +1637,6 @@ function lihatMateri(str) {
     Swal.fire({
         title: m.Judul, html: htmlContent, width: '800px', showCloseButton: true, showConfirmButton: false
     });
-}
-// ... lanjut ke baris let schoolWidgetClass
-
-
-        let schoolWidgetClass = isGuru ? `col-md-5` : `col-md-12`;
-        let cardTitleSekolah = isGuru ? 'Peringkat Sekolah Anda' : 'Peringkat Sekolah (Global)';
-
-        h = `<div class="row g-4 mb-4">
-                <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #0f5132, #15803d); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats.totalSiswa}</h1><p class="m-0 fs-5">Total Siswa Terdaftar</p></div><i class="fas fa-users fa-4x opacity-50"></i></div></div></div>
-                <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #d4af37, #b48500); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats.totalUjian}</h1><p class="m-0 fs-5">Total Ujian Aktif</p></div><i class="fas fa-folder-open fa-4x opacity-50"></i></div></div></div>
-             </div>
-             <div class="row g-4">
-                <div class="${schoolWidgetClass}">
-                    <div class="card shadow-sm border-0 rounded-4 h-100"><div class="card-body p-4"><h5 class="fw-bold text-primary mb-3"><i class="fas fa-trophy me-2"></i>${cardTitleSekolah}</h5>${schoolTable}</div></div>
-                </div>
-                ${extraWidget}
-             </div>`;
-             
-        area.html(h);
-        
-        // Panggil fungsi filter pertama kali untuk mengisi tabel siswa
-        if (isGuru) setTimeout(() => filterDashStudentRanks(), 50);
-        return; // Selesaikan eksekusi khusus admin-home
-    }
-
-        
-    else if (page === 'admin-ujian') {
-        isSurveyMode = false;
-        let uniqueMapel = [...new Set(gData.exams.map(e => e.Mapel))];
-        let uniqueKelas = [...new Set(gData.exams.map(e => String(e.TargetKelas).trim()))];
-        
-        h = `<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">`;
-        if(!isGuru) h += `<button class="btn btn-primary shadow-sm px-4 py-2 rounded-pill fw-bold" onclick="openExamModal()"><i class="fas fa-plus me-2"></i>Buat Jadwal Baru</button>`;
-        else h += `<div><h5 class="fw-bold text-primary mb-0"><i class="fas fa-folder-open me-2"></i>Daftar Bank Soal KKGMI</h5><p class="small text-muted m-0">Guru hanya memiliki akses mengunduh soal untuk cetak PDF.</p></div>`;
-        
-        h += `<div class="d-flex gap-2 bg-white p-2 rounded-pill shadow-sm border">
-                <select id="filter-mapel-ujian" class="form-select form-select-sm border-0 bg-transparent" onchange="filterAdminUjian()"><option value="">Semua Mapel</option>${uniqueMapel.map(m=>`<option value="${m}">${m}</option>`).join('')}</select>
-                <div class="vr"></div>
-                <select id="filter-kelas-ujian" class="form-select form-select-sm border-0 bg-transparent" onchange="filterAdminUjian()"><option value="">Semua Kelas</option>${uniqueKelas.map(k=>`<option value="${k}">${k}</option>`).join('')}</select>
-             </div></div><div class="row g-4" id="admin-ujian-list">`;
-             
-        gData.exams.forEach(e => {
-            let actionButtons = '';
-            if (!isGuru) {
-                actionButtons = `<button class="btn btn-sm btn-outline-dark flex-fill rounded-pill fw-bold" onclick="openExamModal('${encodeURIComponent(JSON.stringify(e))}')"><i class="fas fa-cog"></i> Edit</button> <button class="btn btn-sm btn-outline-primary flex-fill rounded-pill fw-bold" onclick="manageQ('${e.ExamID}')"><i class="fas fa-list"></i> Soal TKA</button> <button class="btn btn-sm btn-danger rounded-circle px-2" onclick="delExam('${e.ExamID}')"><i class="fas fa-trash"></i></button>`;
-            } else {
-                if (e.AllowDownloadQ === 'Yes') {
-                    actionButtons = `<button class="btn btn-success w-100 py-2 rounded-pill fw-bold shadow-sm" onclick="downloadAllQAdmin('${e.ExamID}')"><i class="fas fa-file-pdf me-2"></i> Download Soal Ini (PDF)</button>`;
-                } else {
-                    actionButtons = `<div class="alert alert-light small m-0 p-2 text-center w-100 text-muted border rounded-pill"><i class="fas fa-lock me-1"></i>Akses Download Dikunci Admin</div>`;
-                }
-            }
-            h += `<div class="col-md-6 col-xl-4 ujian-card" data-mapel="${e.Mapel}" data-kelas="${e.TargetKelas}"><div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden"><div class="card-body p-4"><div class="d-flex justify-content-between mb-3"><span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm">${e.Mapel}</span><span class="badge bg-light text-dark border px-3 py-2 rounded-pill shadow-sm"><i class="fas fa-users me-1"></i> ${e.TargetKelas}</span></div><h5 class="fw-bold text-dark mb-1 line-clamp-2">${e.Judul}</h5><p class="small text-muted mb-4"><i class="fas fa-clock me-1"></i> ${e.Durasi} Menit | ${e.LimitTries}x Akses</p><div class="d-flex gap-2 mt-auto">${actionButtons}</div></div></div></div>`;
-        });
-        h += '</div>';
-    }
-    else if (page === 'admin-survey') {
-        isSurveyMode = true;
-        let surveys = gData.surveys || [];
-        h = `<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-                <div><h5 class="fw-bold text-primary mb-0"><i class="fas fa-clipboard-check me-2"></i>Manajemen Survei (Evaluasi)</h5></div>
-                <button class="btn btn-success shadow-sm px-4 py-2 rounded-pill fw-bold" onclick="openSurveyModal()"><i class="fas fa-plus me-2"></i>Buat Survei Baru</button>
-             </div><div class="row g-4">`;
-        surveys.forEach(s => {
-            let statusBadge = s.ShowStats === 'Aktif' ? '<span class="badge bg-success shadow-sm px-3 py-2 rounded-pill">Aktif (Auto Muncul)</span>' : '<span class="badge bg-secondary shadow-sm px-3 py-2 rounded-pill">Tidak Aktif</span>';
-            let linkedExamName = 'Tidak Terhubung';
-            const linkedTKA = gData.exams.find(ex => ex.ExamID === s.Token);
-            if(linkedTKA) linkedExamName = linkedTKA.Judul;
-            
-            h += `<div class="col-md-6 col-xl-4"><div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden"><div class="card-body p-4"><div class="d-flex justify-content-between mb-3">${statusBadge}</div><h5 class="fw-bold text-dark mb-2">${s.Judul}</h5><p class="small text-muted mb-3 line-clamp-2">${s.TargetKelas}</p><div class="mb-4 small p-2 bg-light rounded"><i class="fas fa-link text-primary"></i> <b>Terkait:</b> ${linkedExamName}</div><div class="d-flex gap-2 mt-auto"><button class="btn btn-sm btn-outline-dark flex-fill rounded-pill fw-bold" onclick="openSurveyModal('${encodeURIComponent(JSON.stringify(s))}')"><i class="fas fa-cog"></i> Pengaturan</button> <button class="btn btn-sm btn-outline-primary flex-fill rounded-pill fw-bold" onclick="manageQ('${s.ExamID}')"><i class="fas fa-list"></i> Isi Kuesioner</button> <button class="btn btn-sm btn-danger rounded-circle px-2" onclick="delExam('${s.ExamID}')"><i class="fas fa-trash"></i></button></div></div></div></div>`;
-        });
-        h += '</div>';
-    }
-    else if (page === 'siswa-home') {
-        h = `<div class="card mb-4 border-0 shadow-sm rounded-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #0f5132, #d4af37);"><div class="card-body p-4"><div class="d-flex align-items-center"><img src="${user.Foto || 'https://via.placeholder.com/60'}" class="rounded-circle me-4 shadow" width="70" height="70" style="object-fit:cover; border:3px solid #fff;"><div class="text-start"><h4 class="fw-bold m-0 text-white">Assalamu'alaikum, ${user.Nama}</h4><p class="m-0 text-white-50"><i class="fas fa-school me-1"></i> ${user.Sekolah} | Kelas ${user.Kelas}</p></div></div></div></div><h5 class="fw-bold mb-3 border-bottom pb-2 text-primary"><i class="fas fa-edit me-2"></i>Ujian Aktif Saat Ini</h5><div class="row g-4 mb-5">`;
-        if(!gData.availableExams || gData.availableExams.length === 0) { h += '<div class="col-12"><div class="alert alert-light border border-secondary text-center py-5 rounded-4 shadow-sm text-muted"><i class="fas fa-box-open fa-3x mb-3 text-secondary opacity-50"></i><br>Belum ada jadwal ujian yang aktif untuk Anda saat ini.</div></div>'; } 
-        else {
-            gData.availableExams.forEach(e => {
-                let btnState = '', btnText = '<i class="fas fa-play-circle me-2"></i> MULAI UJIAN', btnClass = 'btn-primary';
-                if (e.IsFinished) { btnState = 'disabled'; btnText = '<i class="fas fa-check me-2"></i> SUDAH DIKERJAKAN'; btnClass = 'btn-secondary'; }
-                else if (e.IsExpired) { btnState = 'disabled'; btnText = '<i class="fas fa-times me-2"></i> WAKTU HABIS'; btnClass = 'btn-danger'; }
-                h += `<div class="col-md-6 col-lg-4"><div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden transition-hover"><div class="card-body p-4 text-center"><span class="badge bg-light text-primary border border-primary px-3 py-2 rounded-pill mb-3 fw-bold">${e.Mapel}</span><h5 class="fw-bold text-dark mb-3">${e.Judul}</h5><p class="small text-muted mb-4"><i class="fas fa-stopwatch me-1"></i> Waktu TKA: <b>${e.Durasi} Menit</b></p><button class="btn ${btnClass} w-100 py-2 fw-bold rounded-pill shadow-sm" onclick="startExam('${e.ExamID}')" ${btnState}>${btnText}</button></div></div></div>`;
-            });
-        }
-        h += '</div><h5 class="fw-bold mb-3 border-bottom pb-2 mt-5 text-primary"><i class="fas fa-history me-2"></i>Riwayat & Unduhan</h5>';
-        if(!gData.history || gData.history.length === 0) { h += '<p class="text-muted fst-italic ms-2">Anda belum menyelesaikan ujian TKA apa pun.</p>'; } 
-        else {
-            h += `<div class="table-responsive bg-white rounded-4 shadow-sm p-3 border"><table class="table table-hover align-middle mb-0"><thead><tr><th>Tanggal & Waktu</th><th>Nama Ujian</th><th>Nilai Akhir</th><th>Status / Aksi Lanjutan</th></tr></thead><tbody>`;
-            gData.history.forEach(r => { 
-                let displayNilai = (r.ShowStats === 'Yes') ? `<span class="badge bg-success fs-6 shadow-sm px-3 rounded-pill">${r.Nilai}</span>` : `<span class="badge bg-secondary fs-6 shadow-sm px-3 rounded-pill"><i class="fas fa-lock"></i> Rahasia</span>`;
-                                let actions = '';
-                
-                // Cek jika Guru mengizinkan unduh soal
-                if(r.AllowDownloadQ === 'Yes') {
-                    actions += `<button class="btn btn-sm btn-outline-info me-2 mt-1 rounded-pill px-3 shadow-sm" onclick="dlSiswaSoal('${r.ExamID}')"><i class="fas fa-file-alt me-1"></i> Soal PDF</button>`;
-                }
-                
-                // Tampilkan Download Hasil PDF selama ShowStats tidak 'No' (Baik untuk Ujian maupun Survei)
-                if(r.ShowStats !== 'No' && r.ShowStats !== 'Tidak') {
-                    actions += `<button class="btn btn-sm btn-success me-2 mt-1 rounded-pill px-3 shadow-sm" onclick="dlSiswaHasil('${r.ResultID}')"><i class="fas fa-file-pdf me-1"></i> Hasil PDF</button>`;
-                }
-                
-                actions += `<button class="btn btn-sm btn-outline-danger mt-1 rounded-pill px-3 shadow-sm" onclick="laporTrobel('${r.ResultID}')"><i class="fas fa-exclamation-triangle me-1"></i> Lapor Trobel</button>`;
-
-                h += `<tr><td class="text-muted small">${r.WaktuSubmit}</td><td><div class="fw-bold text-dark">${r.Judul}</div></td><td>${displayNilai}</td><td><div class="d-flex flex-wrap align-items-center"><span class="badge bg-primary px-3 py-2 rounded-pill me-3 shadow-sm"><i class="fas fa-check me-1"></i> Selesai TKA</span> ${actions}</div></td></tr>`; 
-            });
-            h += `</tbody></table></div>`;
-        }
-    }
-    area.html(h);
 }
 // Fungsi Filter untuk Peringkat Siswa di Dashboard Guru
 function filterDashStudentRanks() {
