@@ -483,10 +483,16 @@ function handleLogout() {
         }
     });
 }
-function initDash() {
+
+    function initDash() {
     $('#view-dashboard').removeClass('hidden');
-    $('#u-name-disp').text(user.Nama);
-    const role = String(user.Role || '').trim().toLowerCase();
+    // Antisipasi nama kosong dari DB
+    $('#u-name-disp').text(user.Nama || user.nama || 'Tanpa Nama');
+    
+    // Antisipasi perbedaan kapitalisasi kolom DB (Role vs role)
+    const rawRole = user.Role || user.role || '';
+    const role = String(rawRole).trim().toLowerCase();
+    
     $('#user-role-disp').text(role.toUpperCase());
     $('.components').addClass('hidden');
     
@@ -500,10 +506,9 @@ function initDash() {
         $('#menu-admin').removeClass('hidden'); loadPage('admin-home'); 
     } 
     else { 
-        // Auto logout jika role tidak valid agar tidak nyangkut (loop)
         Swal.fire({
             title: 'Akses Ditolak', 
-            text: 'Role akun Anda tidak dikenali sistem. Silakan login ulang.', 
+            text: `Role akun (${rawRole || 'Kosong'}) tidak valid. Hubungi Admin.`, 
             icon: 'error',
             confirmButtonText: 'Kembali ke Login',
             allowOutsideClick: false
@@ -514,6 +519,7 @@ function initDash() {
     }
 }
 
+    
 function appRefresh() { const activeLink = $('.nav-link.active'); if (activeLink.length > 0) { const onclickAttr = activeLink.attr('onclick'); if(onclickAttr) { const match = onclickAttr.match(/'([^']+)'/); if(match) loadPage(match[1]); } } }
 function loadPage(page) {
     clearInterval(timerInt); clearInterval(monitorInterval); clearInterval(autosaveInterval); disableSecurity();
