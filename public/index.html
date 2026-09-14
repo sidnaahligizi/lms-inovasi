@@ -545,34 +545,117 @@ function handleLogout() {
 
     
 function appRefresh() { const activeLink = $('.nav-link.active'); if (activeLink.length > 0) { const onclickAttr = activeLink.attr('onclick'); if(onclickAttr) { const match = onclickAttr.match(/'([^']+)'/); if(match) loadPage(match[1]); } } }
+
 function loadPage(page) {
-    clearInterval(timerInt); clearInterval(monitorInterval); clearInterval(autosaveInterval); disableSecurity();
-    $('#view-exam').addClass('hidden'); $('#view-dashboard').removeClass('hidden'); $('body').removeClass('exam-mode');
-    $('#page-title').text(page.replace('-', ' ').toUpperCase());
-    $('.nav-link').removeClass('active'); $(`a[onclick="loadPage('${page}')"]`).addClass('active');
-    if(window.innerWidth <= 768) { $('#sidebar').removeClass('active'); $('#sidebar-overlay').removeClass('active'); }
+    // 1. Reset state keamanan dan interval saat pindah halaman
+    clearInterval(timerInt); 
+    clearInterval(monitorInterval); 
+    clearInterval(autosaveInterval); 
+    disableSecurity();
     
+    // 2. Sembunyikan layar ujian dan tampilkan dashboard
+    $('#view-exam').addClass('hidden'); 
+    $('#view-dashboard').removeClass('hidden'); 
+    $('body').removeClass('exam-mode');
+    
+    // 3. Update judul halaman dan indikator menu aktif
+    $('#page-title').text(page.replace('-', ' ').toUpperCase());
+    $('.nav-link').removeClass('active'); 
+    $(`a[onclick="loadPage('${page}')"]`).addClass('active');
+    
+    // 4. Sembunyikan sidebar otomatis jika di layar HP/Tablet
+    if(window.innerWidth <= 992) { 
+        $('#sidebar').removeClass('active'); 
+        $('#sidebar-overlay').removeClass('active'); 
+    }
+    
+    // --- ROUTING HALAMAN SPESIFIK ---
+
+    // Halaman Data Peserta
     if(page === 'admin-users') {
         showLoad(true);
-        google.script.run.withSuccessHandler(r => { showLoad(false); if(r.status === 'success') renderUsers(r.data); else Swal.fire('Error', r.msg, 'error'); }).getUserList(user.Role, user.ID, user.Sekolah);
-        return;
-    }
-    if(page === 'hasil-rekap') {
-        $('#content-area').html('<div class="text-center p-5"><div class="spinner"></div></div>');
-        google.script.run.withSuccessHandler(r => { if(r.status === 'success') { recapAllData = r.data; renderRecapTable(); } else { $('#content-area').html(`<div class="alert alert-danger">${r.msg}</div>`); } }).getRecapList(user.Role, user.ID, user.Sekolah);
-        return;
-    }
-    if(page === 'guru-monitoring') { renderMonitoring(); return; }
-    if(page === 'admin-administrasi') {
-        showLoad(true);
-        google.script.run.withSuccessHandler(r => { showLoad(false); if(r.status === 'success') { gAdminData = r; renderAdministrasi(); } else Swal.fire('Error', r.msg, 'error'); }).getAdminData(user.Role, user.ID, user.Kelas, user.Sekolah);
+        google.script.run.withSuccessHandler(r => { 
+            showLoad(false); 
+            if(r.status === 'success') renderUsers(r.data); 
+            else Swal.fire('Error', r.msg, 'error'); 
+        }).getUserList(user.Role, user.ID, user.Sekolah);
         return;
     }
     
+    // Halaman Rekap Hasil Ujian CBT Lama
+    if(page === 'hasil-rekap') {
+        $('#content-area').html('<div class="text-center p-5"><div class="spinner"></div></div>');
+        google.script.run.withSuccessHandler(r => { 
+            if(r.status === 'success') { 
+                recapAllData = r.data; 
+                renderRecapTable(); 
+            } else { 
+                $('#content-area').html(`<div class="alert alert-danger">${r.msg}</div>`); 
+            } 
+        }).getRecapList(user.Role, user.ID, user.Sekolah);
+        return;
+    }
+    
+    // Halaman Live Monitoring Ujian
+    if(page === 'guru-monitoring') { 
+        renderMonitoring(); 
+        return; 
+    }
+    
+    // Halaman Cetak Administrasi Ujian
+    if(page === 'admin-administrasi') {
+        showLoad(true);
+        google.script.run.withSuccessHandler(r => { 
+            showLoad(false); 
+            if(r.status === 'success') { 
+                gAdminData = r; 
+                renderAdministrasi(); 
+            } else Swal.fire('Error', r.msg, 'error'); 
+        }).getAdminData(user.Role, user.ID, user.Kelas, user.Sekolah);
+        return;
+    }
+
+    // [BARU] Halaman Rekap Absensi (Admin/Guru)
+    if(page === 'admin-absen') {
+        showLoad(true);
+        google.script.run.withSuccessHandler(r => { 
+            showLoad(false); 
+            if(r.status === 'success') renderAbsenAdmin(r.data); 
+        }).getAbsenRekap(user.Role, user.Sekolah);
+        return;
+    }
+
+    // [BARU] Halaman Riwayat Absensi (Siswa)
+    if(page === 'siswa-absen') {
+        showLoad(true);
+        google.script.run.withSuccessHandler(r => { 
+            showLoad(false); 
+            if(r.status === 'success') renderAbsenSiswa(r.data); 
+        }).getSiswaAbsen(user.ID);
+        return;
+    }
+
+    // [BARU] Halaman Cetak Raport (Admin/Guru)
+    if(page === 'admin-raport') {
+        showLoad(true);
+        google.script.run.withSuccessHandler(r => { 
+            showLoad(false); 
+            if(r.status === 'success') renderRaportMenu(r.data); 
+        }).getRaportData(user.Role, user.Sekolah);
+        return;
+    }
+    
+    // --- ROUTING DEFAULT LINTAS HALAMAN (Dashboard, Materi, Jadwal Ujian) ---
     showLoad(true);
     google.script.run.withSuccessHandler(res => {
         showLoad(false);
-        if (res.status === 'success') { gData = res.data; renderContent(page); applyMathJax(); } else Swal.fire('Error', res.msg, 'error');
+        if (res.status === 'success') { 
+            gData = res.data; 
+            renderContent(page); 
+            applyMathJax(); 
+        } else {
+            Swal.fire('Error', res.msg, 'error');
+        }
     }).getDashboardData(user.Role, user.ID, user.Kelas, user.Sekolah);
 }
 
