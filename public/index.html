@@ -1488,108 +1488,395 @@ function printBeritaAcara() {
     const win = window.open('', '', 'width=800,height=600'); win.document.write(html); win.document.close();
 }
 
-function renderContent(page) {
+    function renderContent(page) {
     const area = $('#content-area'); let h = '';
     const isGuru = String(user.Role).trim().toLowerCase() === 'guru';
     const isSiswa = String(user.Role).trim().toLowerCase() === 'siswa';
 
+    // ==========================================
     // 1. DASHBOARD UTAMA
+    // ==========================================
     if (page === 'admin-home' || page === 'siswa-home') {
-        h += `<div class="alert alert-info border-0 shadow-sm rounded-4 mb-4">
-                <h5 class="fw-bold"><i class="fas fa-bell me-2"></i>Papan Pengumuman</h5><ul class="mb-0">`;
-        if(gData.notifications && gData.notifications.length > 0) {
-            gData.notifications.forEach(n => h+= `<li><b>${n.Tanggal}</b>: ${n.Pesan}</li>`);
-        } else { h += `<li>Belum ada pengumuman terbaru.</li>`; }
-        h += `</ul>`;
-        if (!isSiswa) h += `<div class="mt-3"><input type="text" id="in-notif" class="form-control form-control-sm d-inline w-75" placeholder="Ketik pengumuman baru..."> <button class="btn btn-sm btn-primary" onclick="kirimNotif()">Kirim</button></div>`;
-        h += `</div>`;
-
         if (isSiswa) {
+            // TAMPILAN LMS SISWA (FOLDERING PER MAPEL)
             h += `<div class="card mb-4 border-0 shadow-sm rounded-4 text-white" style="background: linear-gradient(135deg, #0f5132, #d4af37);">
-                    <div class="card-body p-4 text-center">
-                        <img src="${user.Foto || 'https://via.placeholder.com/60'}" class="rounded-circle mb-3 shadow" width="70" height="70" style="object-fit:cover; border:3px solid #fff;">
-                        <h4 class="fw-bold">Selamat Datang, ${user.Nama}</h4>
-                        <p class="mb-2">Akses menu di sebelah kiri untuk melihat Modul Belajar atau Mengerjakan Ujian.</p>
-                        ${!gData.hasAbsen ? `<button class="btn btn-warning text-dark fw-bold mt-2 rounded-pill px-4 shadow-sm" onclick="doAbsen()"><i class="fas fa-hand-paper me-2"></i>Klik Untuk Absen Hari Ini</button>` : `<span class="badge bg-success px-4 py-2 rounded-pill fs-6 shadow-sm"><i class="fas fa-check me-2"></i>Anda sudah absen hari ini</span>`}
+                    <div class="card-body p-4 d-flex align-items-center gap-4">
+                        <img src="${user.Foto}" class="rounded-circle shadow d-none d-md-block" width="80" height="80" style="object-fit:cover; border:3px solid #fff;">
+                        <div>
+                            <h3 class="fw-bold mb-1">Hai, ${user.Nama}</h3>
+                            <p class="mb-0 opacity-75"><i class="fas fa-school me-2"></i>${user.Sekolah} | Kelas ${user.Kelas}</p>
+                        </div>
                     </div>
                   </div>`;
                   
-            h += `<h5 class="fw-bold mb-3 border-bottom pb-2 text-primary"><i class="fas fa-edit me-2"></i>Ujian Aktif Saat Ini</h5><div class="row g-4 mb-5">`;
-            if(!gData.availableExams || gData.availableExams.length === 0) { 
-                h += '<div class="col-12"><div class="alert alert-light border text-center py-4 rounded-4 shadow-sm text-muted">Belum ada jadwal ujian yang aktif.</div></div>'; 
+            h += `<h5 class="fw-bold mb-4 text-primary"><i class="fas fa-layer-group me-2"></i>Ruang Belajar Anda</h5><div class="row g-4 mb-5">`;
+            
+            // Pengelompokan Data per Mapel
+            let mapels = {};
+            (gData.materials || []).forEach(m => {
+                let mp = m.Mapel || m.mapel || 'Lainnya';
+                if(!mapels[mp]) mapels[mp] = { mat: [], exm: [] };
+                mapels[mp].mat.push(m);
+            });
+            (gData.availableExams || []).forEach(e => {
+                let mp = e.Mapel || e.mapel || 'Lainnya';
+                if(!mapels[mp]) mapels[mp] = { mat: [], exm: [] };
+                mapels[mp].exm.push(e);
+            });
+
+            if(Object.keys(mapels).length === 0) {
+                h += '<div class="col-12"><div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Belum ada kelas / mapel yang tersedia untuk Anda.</div></div>';
             } else {
-                gData.availableExams.forEach(e => {
-                    let btnState = '', btnText = '<i class="fas fa-play-circle me-2"></i> MULAI UJIAN', btnClass = 'btn-primary';
-                    if (e.IsFinished) { btnState = 'disabled'; btnText = 'SUDAH DIKERJAKAN'; btnClass = 'btn-secondary'; }
-                    h += `<div class="col-md-6 col-lg-4"><div class="card h-100 shadow-sm border-0 rounded-4 text-center p-4"><span class="badge bg-light text-primary border border-primary px-3 py-2 rounded-pill mb-3 fw-bold">${e.Mapel}</span><h5 class="fw-bold text-dark mb-3">${e.Judul}</h5><button class="btn ${btnClass} w-100 py-2 fw-bold rounded-pill shadow-sm" onclick="startExam('${e.ExamID}')" ${btnState}>${btnText}</button></div></div>`;
-                });
+                for (let mapelName in mapels) {
+                    let totalMat = mapels[mapelName].mat.length;
+                    let totalExm = mapels[mapelName].exm.length;
+                    // Escape petik tunggal
+                    let safeMapel = mapelName.replace(/'/g, "\\'"); 
+                    h += `<div class="col-md-6 col-lg-4">
+                            <div class="card h-100 shadow-sm border-0 rounded-4 transition-hover" style="cursor:pointer;" onclick="openMapelFolder('${safeMapel}')">
+                                <div class="card-body p-4 text-center">
+                                    <div class="display-4 text-success mb-3"><i class="fas fa-folder-open"></i></div>
+                                    <h5 class="fw-bold text-dark mb-3 text-uppercase">${mapelName}</h5>
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <span class="badge bg-light text-primary border"><i class="fas fa-book me-1"></i> ${totalMat} Materi</span>
+                                        <span class="badge bg-light text-danger border"><i class="fas fa-pencil-alt me-1"></i> ${totalExm} Ujian</span>
+                                    </div>
+                                </div>
+                            </div>
+                          </div>`;
+                }
             }
             h += '</div>';
+            
+            // Area detail modal akan ditambahkan otomatis oleh openMapelFolder
         } else {
+            // DASHBOARD GURU / ADMIN
             h += `<div class="row g-4 mb-4">
-                    <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #0f5132, #15803d); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats?.totalSiswa || 0}</h1><p class="m-0 fs-5">Total Siswa</p></div><i class="fas fa-users fa-4x opacity-50"></i></div></div></div>
-                    <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #d4af37, #b48500); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats?.totalUjian || 0}</h1><p class="m-0 fs-5">Total Ujian Aktif</p></div><i class="fas fa-folder-open fa-4x opacity-50"></i></div></div></div>
+                    <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #0f5132, #15803d); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats?.totalSiswa || 0}</h1><p class="m-0 fs-5">Total Siswa Anda</p></div><i class="fas fa-users fa-4x opacity-50"></i></div></div></div>
+                    <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #d4af37, #b48500); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats?.totalUjian || 0}</h1><p class="m-0 fs-5">Bank Soal Anda</p></div><i class="fas fa-folder-open fa-4x opacity-50"></i></div></div></div>
                  </div>`;
         }
     }
 
-    // 2. MATERI BELAJAR
-    else if (page === 'admin-materi' || page === 'siswa-materi') {
+    // ==========================================
+    // 2. MATERI BELAJAR (ADMIN/GURU)
+    // ==========================================
+    else if (page === 'admin-materi') {
         h += `<div class="d-flex justify-content-between mb-4 flex-wrap gap-2">
                 <h5 class="fw-bold text-primary"><i class="fas fa-book me-2"></i>Modul & Materi Belajar</h5>
-                ${!isSiswa ? `<button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" onclick="$('#modalMateri').modal('show'); $('#frm-materi')[0].reset(); $('#mat-id').val('');"><i class="fas fa-plus me-2"></i> Tambah Materi</button>` : ''}
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" onclick="$('#modalMateri').modal('show'); $('#frm-materi')[0].reset(); $('#mat-id').val('');"><i class="fas fa-plus me-2"></i> Tambah Materi</button>
               </div><div class="row g-4">`;
               
-        if(!gData.materials || gData.materials.length === 0) h += `<div class="col-12"><div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted"><i class="fas fa-box-open fa-3x mb-3 opacity-50"></i><br>Belum ada materi diunggah.</div></div>`;
+        if(!gData.materials || gData.materials.length === 0) h += `<div class="col-12"><div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Belum ada materi diunggah.</div></div>`;
         else {
             gData.materials.forEach(m => {
-                let icon = m.Tipe === 'pdf' ? 'fa-file-pdf text-danger' : (m.Tipe === 'youtube' ? 'fa-youtube text-danger' : 'fa-file-alt text-primary');
-                h += `<div class="col-md-6 col-lg-4"><div class="card h-100 shadow-sm border-0 rounded-4 p-4"><span class="badge bg-light text-dark border mb-3 w-auto align-self-start px-3 py-2 rounded-pill">${m.Mapel} | Kls ${m.TargetKelas}</span><h5 class="fw-bold mb-2">${m.Judul}</h5><p class="small text-muted mb-4"><i class="fas ${icon} me-1"></i> Tipe: ${m.Tipe.toUpperCase()}</p><div class="mt-auto d-flex gap-2"><button class="btn btn-success flex-fill rounded-pill fw-bold shadow-sm" onclick="lihatMateri('${encodeURIComponent(JSON.stringify(m))}')"><i class="fas fa-eye me-1"></i> Buka</button>
-                                ${!isSiswa ? `<button class="btn btn-outline-danger rounded-circle px-2 shadow-sm" onclick="hapusMateri('${m.MatID}')"><i class="fas fa-trash"></i></button>` : ''}
-                            </div></div></div>`;
+                let mId = m.MatID || m.matid; let mJudul = m.Judul || m.judul; let mMapel = m.Mapel || m.mapel; let mKelas = m.TargetKelas || m.targetkelas; let mTipe = m.Tipe || m.tipe;
+                let icon = mTipe === 'pdf' ? 'fa-file-pdf text-danger' : (mTipe === 'youtube' ? 'fa-youtube text-danger' : 'fa-file-alt text-primary');
+                h += `<div class="col-md-6 col-lg-4"><div class="card h-100 shadow-sm border-0 rounded-4 p-4"><span class="badge bg-light text-dark border mb-3 w-auto align-self-start px-3 py-2 rounded-pill">${mMapel} | Kls ${mKelas}</span><h5 class="fw-bold mb-2">${mJudul}</h5><p class="small text-muted mb-4"><i class="fas ${icon} me-1"></i> Tipe: ${String(mTipe).toUpperCase()}</p><div class="mt-auto d-flex gap-2"><button class="btn btn-success flex-fill rounded-pill fw-bold shadow-sm" onclick="lihatMateri('${encodeURIComponent(JSON.stringify(m))}')"><i class="fas fa-eye me-1"></i> Buka</button><button class="btn btn-outline-danger rounded-circle px-2 shadow-sm" onclick="hapusMateri('${mId}')"><i class="fas fa-trash"></i></button></div></div></div>`;
             });
         }
         h += `</div>`;
     }
     
-    // 3. DAFTAR UJIAN ADMIN
+    // ==========================================
+    // 3. DAFTAR UJIAN ADMIN/GURU
+    // ==========================================
     else if (page === 'admin-ujian') {
         isSurveyMode = false;
-        h += `<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">`;
-        if(!isGuru) h += `<button class="btn btn-primary shadow-sm px-4 py-2 rounded-pill fw-bold" onclick="openExamModal()"><i class="fas fa-plus me-2"></i>Buat Jadwal Baru</button>`;
-        else h += `<div><h5 class="fw-bold text-primary mb-0"><i class="fas fa-folder-open me-2"></i>Daftar Bank Soal</h5></div>`;
-        h += `</div><div class="row g-4" id="admin-ujian-list">`;
+        h += `<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                <h5 class="fw-bold text-primary mb-0"><i class="fas fa-folder-open me-2"></i>Daftar Bank Soal</h5>
+                <button class="btn btn-primary shadow-sm px-4 py-2 rounded-pill fw-bold" onclick="openExamModal()"><i class="fas fa-plus me-2"></i>Buat Evaluasi / Ujian Baru</button>
+              </div><div class="row g-4" id="admin-ujian-list">`;
+              
+        if(!gData.exams || gData.exams.length === 0) h += `<div class="col-12"><div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Belum ada ujian yang Anda buat.</div></div>`;
         (gData.exams||[]).forEach(e => {
-            let actionButtons = !isGuru 
-                ? `<button class="btn btn-sm btn-outline-dark flex-fill rounded-pill fw-bold" onclick="openExamModal('${encodeURIComponent(JSON.stringify(e))}')"><i class="fas fa-cog"></i> Edit</button> <button class="btn btn-sm btn-outline-primary flex-fill rounded-pill fw-bold" onclick="manageQ('${e.ExamID}')"><i class="fas fa-list"></i> Soal</button> <button class="btn btn-sm btn-danger rounded-circle px-2" onclick="delExam('${e.ExamID}')"><i class="fas fa-trash"></i></button>`
-                : (e.AllowDownloadQ === 'Yes' ? `<button class="btn btn-success w-100 py-2 rounded-pill fw-bold shadow-sm" onclick="downloadAllQAdmin('${e.ExamID}')"><i class="fas fa-file-pdf me-2"></i> Download Soal Ini</button>` : `<div class="alert alert-light small m-0 p-2 text-center w-100 text-muted border rounded-pill"><i class="fas fa-lock me-1"></i>Dikunci Admin</div>`);
+            let eId = e.ExamID || e.examid; let eJudul = e.Judul || e.judul; let eMapel = e.Mapel || e.mapel; let eKelas = e.TargetKelas || e.targetkelas; let eDurasi = e.Durasi || e.durasi;
+            
+            let actionButtons = `<button class="btn btn-sm btn-outline-dark flex-fill rounded-pill fw-bold" onclick="openExamModal('${encodeURIComponent(JSON.stringify(e))}')"><i class="fas fa-cog"></i> Edit</button> <button class="btn btn-sm btn-outline-primary flex-fill rounded-pill fw-bold" onclick="manageQ('${eId}')"><i class="fas fa-list"></i> Buat Soal</button> <button class="btn btn-sm btn-danger rounded-circle px-2" onclick="delExam('${eId}')"><i class="fas fa-trash"></i></button>`;
                 
-            h += `<div class="col-md-6 col-xl-4 ujian-card"><div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden"><div class="card-body p-4"><span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm mb-3">${e.Mapel}</span><h5 class="fw-bold text-dark mb-1">${e.Judul}</h5><p class="small text-muted mb-4"><i class="fas fa-clock me-1"></i> ${e.Durasi} Menit | Kls: ${e.TargetKelas}</p><div class="d-flex gap-2 mt-auto">${actionButtons}</div></div></div></div>`;
+            h += `<div class="col-md-6 col-xl-4 ujian-card"><div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden"><div class="card-body p-4"><span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm mb-3">${eMapel}</span><h5 class="fw-bold text-dark mb-1">${eJudul}</h5><p class="small text-muted mb-4"><i class="fas fa-clock me-1"></i> ${eDurasi} Menit | Kls: ${eKelas}</p><div class="d-flex gap-2 mt-auto">${actionButtons}</div></div></div></div>`;
         });
         h += '</div>';
     }
-
-    // 4. RIWAYAT UJIAN SISWA
-    else if (page === 'siswa-ujian') {
-        h += `<h5 class="fw-bold mb-3 text-primary"><i class="fas fa-history me-2"></i>Riwayat & Ujian Selesai</h5>`;
-        if(!gData.history || gData.history.length === 0) { h += '<p class="text-muted fst-italic">Anda belum menyelesaikan ujian TKA apa pun.</p>'; } 
-        else {
-            h += `<div class="table-responsive bg-white rounded-4 shadow-sm p-3 border"><table class="table table-hover align-middle mb-0"><thead><tr><th>Tanggal</th><th>Nama Ujian</th><th>Nilai</th><th>Status</th></tr></thead><tbody>`;
-            gData.history.forEach(r => { 
-                let displayNilai = (r.ShowStats === 'Yes' || r.ShowStats === 'Aktif') ? `<span class="badge bg-success fs-6 shadow-sm px-3 rounded-pill">${r.Nilai}</span>` : `<span class="badge bg-secondary fs-6 shadow-sm px-3 rounded-pill"><i class="fas fa-lock"></i> Rahasia</span>`;
-                h += `<tr><td class="text-muted small">${r.WaktuSubmit}</td><td><div class="fw-bold text-dark">${r.Judul}</div></td><td>${displayNilai}</td><td><span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm"><i class="fas fa-check me-1"></i> Selesai</span></td></tr>`; 
-            });
-            h += `</tbody></table></div>`;
-        }
-    }
     
-    // 5. HALAMAN LAIN
-    else {
-        h += `<div class="alert alert-warning text-center py-4 rounded-4"><i class="fas fa-tools fa-2x mb-2"></i><br>Halaman ini sedang dimuat atau dipindahkan ke menu utama. Silakan gunakan navigasi Dashboard.</div>`;
-    }
-
+    else { h += `<div class="alert alert-warning text-center py-4 rounded-4">Memuat Halaman...</div>`; }
     area.html(h);
 }
+
+// ===============================================
+// FUNGSI BARU: FOLDER MAPEL SISWA
+// ===============================================
+function openMapelFolder(mapelName) {
+    let matHtml = ''; let exmHtml = '';
+    
+    (gData.materials || []).forEach(m => {
+        let mp = m.Mapel || m.mapel; let mJudul = m.Judul || m.judul; let mTipe = m.Tipe || m.tipe;
+        if(mp === mapelName) {
+            let icon = mTipe === 'pdf' ? 'fa-file-pdf text-danger' : (mTipe === 'youtube' ? 'fa-youtube text-danger' : 'fa-file-alt text-primary');
+            matHtml += `<div class="d-flex justify-content-between align-items-center bg-white border p-3 rounded-4 shadow-sm mb-2"><div class="fw-bold text-dark"><i class="fas ${icon} me-2 fs-5"></i> ${mJudul}</div> <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="lihatMateri('${encodeURIComponent(JSON.stringify(m))}')">Buka</button></div>`;
+        }
+    });
+
+    (gData.availableExams || []).forEach(e => {
+        let mp = e.Mapel || e.mapel; let eJudul = e.Judul || e.judul; let eId = e.ExamID || e.examid;
+        if(mp === mapelName) {
+            let btnState = '', btnText = 'Kerjakan';
+            if (e.IsFinished) { btnState = 'disabled'; btnText = 'Selesai'; }
+            exmHtml += `<div class="d-flex justify-content-between align-items-center bg-white border p-3 rounded-4 shadow-sm mb-2"><div class="fw-bold text-dark"><i class="fas fa-edit text-danger me-2 fs-5"></i> ${eJudul}</div> <button class="btn btn-sm btn-danger rounded-pill px-3" onclick="startExam('${eId}')" ${btnState}>${btnText}</button></div>`;
+        }
+    });
+
+    if(!matHtml) matHtml = '<p class="text-muted small">Belum ada materi untuk bab ini.</p>';
+    if(!exmHtml) exmHtml = '<p class="text-muted small">Belum ada evaluasi untuk bab ini.</p>';
+
+    Swal.fire({
+        title: `<div class="text-start border-bottom pb-2 mb-3"><span class="badge bg-success mb-2">MAPEL</span><h3 class="fw-bold m-0">${mapelName}</h3></div>`,
+        html: `<div class="text-start">
+                  <h6 class="fw-bold text-primary mb-3"><i class="fas fa-book-open me-2"></i>Materi & Modul Pembelajaran</h6>
+                  <div class="mb-4">${matHtml}</div>
+                  <h6 class="fw-bold text-danger mb-3"><i class="fas fa-pencil-alt me-2"></i>Kuis & Ulangan (Evaluasi)</h6>
+                  <div>${exmHtml}</div>
+               </div>`,
+        width: '800px', showCloseButton: true, showConfirmButton: false
+    });
+}
+
+// ===============================================
+// FUNGSI BARU: MENU ABSENSI GURU (BISA INPUT & REKAP)
+// ===============================================
+window.allAbsenData = [];
+window.currentFilteredAbsen = [];
+
+function renderAbsenAdmin(data) {
+    window.allAbsenData = data || [];
+    window.currentFilteredAbsen = window.allAbsenData;
+    
+    let uniqueKelas = [...new Set(window.allAbsenData.map(a => a.Kelas || a.kelas || ''))].filter(Boolean).sort();
+    let optKelas = `<option value="">Semua Kelas</option>` + uniqueKelas.map(k => `<option value="${k}">${k}</option>`).join('');
+
+    let h = `
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <h5 class="fw-bold text-primary mb-0"><i class="fas fa-clipboard-user me-2"></i>Manajemen Kehadiran Kelas</h5>
+        <div>
+            <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold me-2" onclick="bukaFormAbsenGuru()"><i class="fas fa-edit me-2"></i> Input Absen Harian</button>
+            <button class="btn btn-outline-success rounded-pill px-4 shadow-sm fw-bold" onclick="printAbsen()"><i class="fas fa-print me-2"></i> Cetak Rekap</button>
+        </div>
+    </div>
+    
+    <div class="row g-2 mb-3 p-3 bg-white rounded-4 shadow-sm border">
+        <div class="col-md-4"><label class="small fw-bold text-muted ms-1">Tanggal Absen</label><input type="date" id="filter-absen-tgl" class="form-control bg-light border-0 rounded-pill px-3" onchange="applyFilterAbsen()"></div>
+        <div class="col-md-4"><label class="small fw-bold text-muted ms-1">Filter Kelas</label><select id="filter-absen-kelas" class="form-select bg-light border-0 rounded-pill px-3" onchange="applyFilterAbsen()">${optKelas}</select></div>
+        <div class="col-md-4"><label class="small fw-bold text-muted ms-1">Cari Nama</label><input type="text" id="filter-absen-nama" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Ketik nama..." onkeyup="applyFilterAbsen()"></div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="table-responsive"><table class="table table-hover align-middle mb-0 text-center"><thead class="table-light"><tr><th>Tanggal</th><th class="text-start">Nama Siswa</th><th>Kelas</th><th>Sekolah</th><th>Status</th></tr></thead><tbody id="absen-tbody"></tbody></table></div>
+    </div>`;
+    
+    $('#content-area').html(h);
+    renderAbsenRows(window.allAbsenData);
+}
+
+function renderAbsenRows(data) {
+    let h = '';
+    if(!data || data.length === 0) { h = `<tr><td colspan="5" class="text-muted py-4">Belum ada data absensi.</td></tr>`; } 
+    else { 
+        data.forEach(a => { 
+            let sts = a.Status || a.status; let color = sts === 'Hadir' ? 'success' : (sts==='Sakit'?'warning':(sts==='Izin'?'info':'danger'));
+            h += `<tr><td class="fw-medium">${a.Tanggal || a.tanggal}</td><td class="text-start fw-bold">${a.Nama || a.nama}</td><td>${a.Kelas || a.kelas}</td><td>${a.Sekolah || a.sekolah}</td><td><span class="badge bg-${color} rounded-pill px-3">${sts}</span></td></tr>`; 
+        }); 
+    }
+    $('#absen-tbody').html(h);
+}
+
+function applyFilterAbsen() {
+    let nama = $('#filter-absen-nama').val().toLowerCase(); let tgl = $('#filter-absen-tgl').val(); let kelas = $('#filter-absen-kelas').val();
+    window.currentFilteredAbsen = window.allAbsenData.filter(a => {
+        let matchNama = (a.Nama || a.nama || "").toLowerCase().includes(nama); let matchTgl = tgl === "" || (a.Tanggal || a.tanggal) === tgl; let matchKelas = kelas === "" || (a.Kelas || a.kelas) === kelas;
+        return matchNama && matchTgl && matchKelas;
+    });
+    renderAbsenRows(window.currentFilteredAbsen);
+}
+
+function bukaFormAbsenGuru() {
+    // Meminta guru memilih kelas mana yang mau di absen hari ini (Karena guru bisa pegang banyak kelas)
+    Swal.fire({
+        title: 'Input Absensi Kelas',
+        html: `<div class="text-start"><label class="fw-bold mb-2">Ketik Kelas yang ingin diabsen:</label><input type="text" id="swal-in-kelas" class="form-control" placeholder="Contoh: 10A"><br><label class="fw-bold mb-2">Tanggal Absen:</label><input type="date" id="swal-in-tgl" class="form-control" value="${new Date().toISOString().split('T')[0]}"></div>`,
+        showCancelButton: true, confirmButtonText: 'Tampilkan Daftar Siswa'
+    }).then(r => {
+        if(r.isConfirmed) {
+            let kls = $('#swal-in-kelas').val(); let tgl = $('#swal-in-tgl').val();
+            if(!kls || !tgl) return Swal.fire('Error','Kelas dan Tanggal wajib diisi!','error');
+            
+            showLoad(true);
+            google.script.run.withSuccessHandler(res => {
+                showLoad(false);
+                let siswaKls = res.data.filter(u => (u.Kelas||u.kelas) === kls);
+                if(siswaKls.length === 0) return Swal.fire('Kosong', 'Tidak ada siswa di kelas tersebut.', 'info');
+                
+                let formHtml = `<div class="text-start"><h5 class="fw-bold text-success border-bottom pb-2 mb-3">Absensi Kelas ${kls} (${tgl})</h5><form id="frm-absen-massal" style="max-height: 400px; overflow-y: auto; overflow-x: hidden;">`;
+                siswaKls.forEach((s, idx) => {
+                    let sId = s.ID || s.id; let sNama = s.Nama || s.nama;
+                    formHtml += `<div class="d-flex justify-content-between align-items-center p-2 border-bottom"><div class="fw-bold text-truncate" style="max-width: 45%;" title="${sNama}">${idx+1}. ${sNama}</div>
+                        <div class="d-flex gap-2">
+                            <label><input type="radio" name="abs_${sId}" value="Hadir" checked> H</label>
+                            <label><input type="radio" name="abs_${sId}" value="Sakit"> S</label>
+                            <label><input type="radio" name="abs_${sId}" value="Izin"> I</label>
+                            <label><input type="radio" name="abs_${sId}" value="Alpa"> A</label>
+                        </div></div>`;
+                });
+                formHtml += `</form></div>`;
+                
+                Swal.fire({
+                    html: formHtml, width: '700px', showCancelButton: true, confirmButtonText: 'Simpan Absensi Permanen', confirmButtonColor: '#0f5132'
+                }).then(rs => {
+                    if(rs.isConfirmed) {
+                        let records = [];
+                        siswaKls.forEach(s => { let sId = s.ID || s.id; records.push({ uid: sId, tgl: tgl, status: $(`input[name="abs_${sId}"]:checked`).val() }); });
+                        showLoad(true);
+                        google.script.run.withSuccessHandler(saveRes => {
+                            showLoad(false); Swal.fire('Berhasil', saveRes.msg, 'success'); loadPage('admin-absen');
+                        }).adminSaveAbsenBatch(records);
+                    }
+                });
+            }).getUserList(user.Role, user.ID, user.Sekolah);
+        }
+    });
+}
+
+function printAbsen() {
+    let data = window.currentFilteredAbsen;
+    if(!data || data.length === 0) return Swal.fire('Kosong', 'Tidak ada data untuk dicetak.', 'info');
+    let tglStr = $('#filter-absen-tgl').val() || 'Semua Tanggal'; let klsStr = $('#filter-absen-kelas').val() || 'Semua Kelas';
+    let html = `<div style="text-align:center; padding-bottom:10px; margin-bottom:20px;"><h3 style="margin:0; color:#0f5132; text-decoration: underline;">REKAPITULASI ABSENSI SISWA</h3><p style="margin:5px 0;"><strong>Tanggal:</strong> ${tglStr} | <strong>Kelas:</strong> ${klsStr}</p></div><table style="width:100%; border-collapse:collapse; margin-bottom:30px; font-size:14px;" border="1"><thead style="background:#f1f5f9;"><tr><th style="padding:8px;">No</th><th style="padding:8px;">Tanggal</th><th style="padding:8px;">Nama Siswa</th><th style="padding:8px;">Kelas</th><th style="padding:8px;">Status</th></tr></thead><tbody>`;
+    data.forEach((a, i) => { html += `<tr><td style="padding:8px; text-align:center;">${i + 1}</td><td style="padding:8px; text-align:center;">${a.Tanggal || a.tanggal}</td><td style="padding:8px;">${a.Nama || a.nama}</td><td style="padding:8px; text-align:center;">${a.Kelas || a.kelas}</td><td style="padding:8px; text-align:center;">${a.Status || a.status}</td></tr>`; });
+    html += `</tbody></table><div style="text-align:right; margin-top:40px;"><p>Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</p><p style="margin-bottom:70px;">Guru Kelas / Pengawas</p><p><strong>${user.Nama}</strong></p></div>`;
+    downloadHTMLToPDF('Rekap_Absensi', html);
+}
+
+// ===============================================
+// FUNGSI BARU: RAPORT SIAP CETAK PROFESIONAL
+// ===============================================
+let globalRaportData = {};
+function renderRaportMenu(data) {
+    globalRaportData = data;
+    let uniqueKelas = [...new Set(data.users.map(u => u.Kelas || u.kelas))].filter(Boolean).sort();
+    
+    // Guru bisa mengampu lebih dari 1 kelas (Bisa melihat dropdown multi kelas yang ada di sekolahnya)
+    let optKelas = `<option value="">-- Pilih Kelas --</option>` + uniqueKelas.map(k => `<option value="${k}">${k}</option>`).join('');
+
+    let h = `<div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-file-signature me-2"></i>Cetak Laporan Akademik (Raport)</h5></div>
+             <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background: linear-gradient(to right, #f8fafc, #ffffff);">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4"><label class="small fw-bold text-muted mb-2">1. Pilih Kelas</label><select id="rap-kelas" class="form-select border border-secondary shadow-sm rounded-3" onchange="filterSiswaRaport()">${optKelas}</select></div>
+                    <div class="col-md-6"><label class="small fw-bold text-muted mb-2">2. Pilih Nama Siswa</label><select id="rap-siswa" class="form-select border border-secondary shadow-sm rounded-3"><option value="">-- Pilih Kelas Terlebih Dahulu --</option></select></div>
+                    <div class="col-md-2"><button class="btn btn-success w-100 py-2 fw-bold shadow-sm rounded-3" onclick="printRaportSiswa()"><i class="fas fa-print me-2"></i> Cetak PDF</button></div>
+                </div>
+             </div>`;
+    $('#content-area').html(h);
+}
+
+function filterSiswaRaport() {
+    const kls = $('#rap-kelas').val();
+    let siswaFiltered = globalRaportData.users.filter(u => (u.Kelas || u.kelas) === kls);
+    let opts = `<option value="">-- Pilih Siswa yang Tersedia --</option>` + siswaFiltered.map(s => `<option value="${s.ID||s.id}">${s.Nama||s.nama}</option>`).join('');
+    $('#rap-siswa').html(opts);
+}
+
+function printRaportSiswa() {
+    const sid = $('#rap-siswa').val();
+    if(!sid) return Swal.fire('Perhatian', 'Anda harus memilih nama siswa terlebih dahulu!', 'warning');
+    
+    const siswa = globalRaportData.users.find(u => (u.ID||u.id) === sid);
+    const absensiSiswa = globalRaportData.absen.filter(a => (a.sID||a.sid) === sid);
+    
+    // Kalkulasi Absensi
+    let tHadir = 0, tSakit = 0, tIzin = 0, tAlpa = 0;
+    absensiSiswa.forEach(a => {
+        let sts = a.Status || a.status; let jml = a.Jml || a.jml;
+        if(sts === 'Hadir') tHadir += jml; else if(sts === 'Sakit') tSakit += jml; else if(sts === 'Izin') tIzin += jml; else if(sts === 'Alpa') tAlpa += jml;
+    });
+
+    const nilaiSiswa = globalRaportData.results.filter(r => (r.sID||r.sid) === sid);
+    
+    let tableRows = ''; let totalAll = 0;
+    if(nilaiSiswa.length === 0) {
+        tableRows = `<tr><td colspan="4" style="text-align:center; padding:15px; color:#64748b;">Siswa belum menyelesaikan evaluasi / ujian apa pun di semester ini.</td></tr>`;
+    } else {
+        nilaiSiswa.forEach((n, i) => {
+            let nMapel = n.tMapel || n.tmapel; let nJudul = n.tJudul || n.tjudul; let nSkor = Number(n.tNilai || n.tnilai);
+            totalAll += nSkor;
+            let predikat = nSkor >= 90 ? 'A' : (nSkor >= 80 ? 'B' : (nSkor >= 70 ? 'C' : 'D'));
+            tableRows += `<tr><td style="text-align:center; padding:8px;">${i+1}</td><td style="padding:8px;">${nMapel} <br><small style="color:#64748b;">${nJudul}</small></td><td style="text-align:center; padding:8px; font-weight:bold; font-size:15px;">${nSkor}</td><td style="text-align:center; padding:8px; font-weight:bold;">${predikat}</td></tr>`;
+        });
+    }
+    
+    let rataRata = nilaiSiswa.length > 0 ? (totalAll / nilaiSiswa.length).toFixed(2) : 0;
+    let sNama = siswa.Nama||siswa.nama; let sKelas = siswa.Kelas||siswa.kelas; let sSekolah = siswa.Sekolah||siswa.sekolah; let sNis = siswa.Username||siswa.username;
+    
+    let html = `
+    <div style="display: flex; align-items: center; border-bottom: 4px solid #064e3b; padding-bottom: 15px; margin-bottom: 25px;">
+        <img src="${user.LogoUrl || 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'}" style="width: 90px; height: 90px; margin-right: 20px;">
+        <div style="flex-grow: 1; text-align: center;">
+            <h2 style="margin:0; font-size: 24px; color:#064e3b; letter-spacing: 1px;">LAPORAN HASIL BELAJAR PESERTA DIDIK</h2>
+            <h3 style="margin:5px 0; font-size: 18px; color:#1e293b;">${sSekolah}</h3>
+            <p style="margin: 0; font-size: 12px; color: #64748b;">Aplikasi CBT & LMS Terpadu KKGMI Kota Surabaya 10</p>
+        </div>
+    </div>
+
+    <table style="width:100%; margin-bottom:25px; font-size:14px;">
+        <tr><td width="20%" style="padding:4px;"><strong>Nama Peserta Didik</strong></td><td width="2%">:</td><td width="48%"><strong>${sNama}</strong></td><td width="15%"><strong>Kelas</strong></td><td width="2%">:</td><td width="13%"><strong>${sKelas}</strong></td></tr>
+        <tr><td style="padding:4px;"><strong>Nomor Induk / Username</strong></td><td>:</td><td>${sNis}</td><td><strong>Semester</strong></td><td>:</td><td>Ganjil</td></tr>
+        <tr><td style="padding:4px;"><strong>Nama Sekolah</strong></td><td>:</td><td>${sSekolah}</td><td><strong>Tahun Ajaran</strong></td><td>:</td><td>2026/2027</td></tr>
+    </table>
+    
+    <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">A. Capaian Akademik</h4>
+    <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom: 20px;" border="1">
+        <thead style="background-color:#064e3b; color: white;">
+            <tr><th width="5%" style="padding:10px;">No</th><th width="65%" style="padding:10px;">Mata Pelajaran</th><th width="15%" style="padding:10px;">Nilai Akhir</th><th width="15%" style="padding:10px;">Predikat</th></tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+        <tfoot>
+            <tr style="background-color:#f1f5f9;"><td colspan="2" style="text-align:right; padding:10px; font-weight:bold;">RATA - RATA NILAI</td><td style="text-align:center; padding:10px; font-weight:bold; color:#0f5132; font-size:16px;">${rataRata}</td><td style="background-color:#fff;"></td></tr>
+        </tfoot>
+    </table>
+
+    <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">B. Ketidakhadiran</h4>
+    <table style="width:40%; border-collapse:collapse; font-size:13px; margin-bottom: 20px;" border="1">
+        <tr><td style="padding:6px 10px;">Sakit</td><td style="padding:6px 10px; text-align:center;">${tSakit} Hari</td></tr>
+        <tr><td style="padding:6px 10px;">Izin</td><td style="padding:6px 10px; text-align:center;">${tIzin} Hari</td></tr>
+        <tr><td style="padding:6px 10px;">Tanpa Keterangan</td><td style="padding:6px 10px; text-align:center;">${tAlpa} Hari</td></tr>
+    </table>
+
+    <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">C. Catatan Wali Kelas</h4>
+    <div style="border: 1px solid #000; padding: 15px; height: 80px; margin-bottom: 20px;">
+        <!-- Kosong untuk diisi manual oleh wali kelas -->
+    </div>
+
+    <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">D. Tanggapan Orang Tua / Wali</h4>
+    <div style="border: 1px solid #000; padding: 15px; height: 80px; margin-bottom: 40px;">
+        <!-- Kosong untuk diisi manual oleh orang tua -->
+    </div>
+
+    <table style="width:100%; text-align:center; font-size:14px; margin-top: 30px; page-break-inside: avoid;">
+        <tr>
+            <td width="33%">Mengetahui,<br>Orang Tua / Wali</td>
+            <td width="34%"></td>
+            <td width="33%">Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}<br>Wali Kelas</td>
+        </tr>
+        <tr><td height="80"></td><td></td><td></td></tr>
+        <tr>
+            <td><strong>( ..................................... )</strong></td>
+            <td>Mengetahui,<br>Kepala Sekolah<br><br><br><br><br><strong>( ..................................... )</strong></td>
+            <td><strong>${user.Nama}</strong></td>
+        </tr>
+    </table>
+    `;
+    
+    downloadHTMLToPDF('Raport_' + sNama.replace(/\s+/g, '_'), html);
+}
+
 // FUNGSI JAVASCRIPT TAMBAHAN LMS
 function toggleKontenInput() {
     const tipe = $('#mat-tipe').val();
@@ -2598,7 +2885,7 @@ function loadPage(page) {
         showLoad(true);
         google.script.run.withSuccessHandler(r => { 
             showLoad(false); 
-            if(r.status === 'success') { gAdminData = r; renderAdministrasi(); } 
+            if(r.status === 'success') { gAdminData = r; istrasi(); } 
             else Swal.fire('Error', r.msg, 'error'); 
         }).getAdminData(user.Role, user.ID, user.Kelas, user.Sekolah);
         return;
