@@ -5,6 +5,54 @@ import { turso } from '../../../lib/turso';
 export async function POST(req) {
   try {
     const { action, args } = await req.json();
+    // -- API UPLOAD BATCH SISWA VIA EXCEL --
+    if (action === 'adminBatchSaveUsers') {
+        const usersArr = args[0];
+        for (let u of usersArr) {
+            const id = 'U' + Date.now() + Math.floor(Math.random() * 10000);
+            await turso.execute({ 
+                sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                args: [id, u.Nama || '-', u.Username || ('user'+id), u.Password || '123456', String(u.Role || 'siswa').toLowerCase(), u.Sekolah || '', u.Kelas || '', u.TglLahir || ''] 
+            });
+        }
+        return NextResponse.json({ status: 'success', msg: `${usersArr.length} data siswa berhasil diupload!` });
+    }
+
+    // -- API REKAP ABSENSI ADMIN/GURU --
+    if (action === 'getAbsenRekap') {
+        const [role, sekolah] = args;
+        let sql = "SELECT a.Tanggal, a.Status, u.Nama, u.Kelas, u.Sekolah FROM Attendance a JOIN Users u ON a.SiswaID = u.ID";
+        let pArgs = [];
+        if (role === 'guru') { 
+            sql += " WHERE LOWER(TRIM(u.Sekolah)) = LOWER(TRIM(?))"; 
+            pArgs.push(sekolah); 
+        }
+        sql += " ORDER BY a.Tanggal DESC";
+        const recap = await turso.execute({ sql, args: pArgs });
+        return NextResponse.json({ status: 'success', data: recap.rows });
+    }
+
+    // -- API RIWAYAT ABSENSI SISWA --
+    if (action === 'getSiswaAbsen') {
+        const history = await turso.execute({ sql: "SELECT * FROM Attendance WHERE SiswaID = ? ORDER BY Tanggal DESC", args: [args[0]] });
+        return NextResponse.json({ status: 'success', data: history.rows });
+    }
+
+    // -- API GENERATE RAPORT PER SEMESTER --
+    if (action === 'getRaportData') {
+        const [role, sekolah] = args;
+        let sqlUsers = "SELECT ID, Nama, Kelas, Sekolah FROM Users WHERE Role='siswa'";
+        let pArgs = [];
+        if (role === 'guru') { 
+            sqlUsers += " AND LOWER(TRIM(Sekolah)) = LOWER(TRIM(?))"; 
+            pArgs.push(sekolah); 
+        }
+        const users = await turso.execute({ sql: sqlUsers, args: pArgs });
+        const results = await turso.execute("SELECT r.SiswaID, r.TotalNilai, e.Mapel, e.Judul FROM Results r JOIN Exams e ON r.ExamID = e.ExamID WHERE e.Mapel != 'SURVEY'");
+        const absen = await turso.execute("SELECT SiswaID, COUNT(*) as TotalHadir FROM Attendance GROUP BY SiswaID");
+
+        return NextResponse.json({ status: 'success', data: { users: users.rows, results: results.rows, absen: absen.rows } });
+    }
 
     // 1. DASHBOARD DATA UTAMA
 if (action === 'getDashboardData') {
