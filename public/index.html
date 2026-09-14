@@ -473,10 +473,26 @@ const surveyScales = {
 $(document).ready(() => {
     const savedUser = localStorage.getItem('cbt_user');
     if(!savedUser) { window.location.href = '/'; return; }
-    user = JSON.parse(savedUser);
-    $('#logo-container img').attr('src', user.LogoUrl || 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq');
+    
+    // NORMALISASI DATA (Mencegah error 'undefined' dari database)
+    let pUser = JSON.parse(savedUser);
+    user = {
+        ID: pUser.ID || pUser.id,
+        Nama: pUser.Nama || pUser.nama || 'Tanpa Nama',
+        Role: pUser.Role || pUser.role || 'siswa',
+        Username: pUser.Username || pUser.username,
+        Password: pUser.Password || pUser.password,
+        Sekolah: pUser.Sekolah || pUser.sekolah || '-',
+        Kelas: pUser.Kelas || pUser.kelas || '-',
+        TglLahir: pUser.TglLahir || pUser.tgllahir || '-',
+        Foto: pUser.Foto || pUser.foto || 'https://via.placeholder.com/60',
+        LogoUrl: pUser.LogoUrl || 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'
+    };
+    
+    $('#logo-container img').attr('src', user.LogoUrl);
     initDash(); checkResumeExam();
 });
+
 
 function applyMathJax() { if (window.MathJax && MathJax.typesetPromise) { MathJax.typesetPromise().catch((err) => console.log('MathJax Error:', err)); } }
 function checkResumeExam() {
@@ -654,39 +670,46 @@ function renderUsers(users) {
 function renderUserRows(data) {
     const role = String(user.Role).trim().toLowerCase();
     const isAdmin = role === 'admin';
-    const canEdit = role === 'admin' || role === 'guru'; // Guru diizinkan melihat tombol aksi
+    const canEdit = role === 'admin' || role === 'guru'; 
     let h = '';
     
     if(!data || data.length === 0) {
         h = `<tr><td colspan="${isAdmin ? 8 : (canEdit ? 7 : 6)}" class="text-center text-muted py-4">Data peserta tidak ditemukan.</td></tr>`;
     } else {
         data.forEach(u => {
-            const safeData = encodeURIComponent(JSON.stringify(u));
+            // Deteksi huruf kecil dari Turso
+            let uId = u.ID || u.id;
+            let uNama = u.Nama || u.nama || '-';
+            let uUsername = u.Username || u.username || '-';
+            let uRole = u.Role || u.role || 'siswa';
+            let uKelas = u.Kelas || u.kelas || '-';
+            let uSekolah = u.Sekolah || u.sekolah || '-';
+            let uTgl = u.TglLahir || u.tgllahir || '-';
+            let uFoto = u.Foto || u.foto || 'https://via.placeholder.com/40';
+
+            // Amankan data untuk tombol Edit
+            const safeData = encodeURIComponent(JSON.stringify({ ID: uId, Nama: uNama, Username: uUsername, Password: u.Password || u.password, Role: uRole, Kelas: uKelas, Sekolah: uSekolah, TglLahir: uTgl, Foto: uFoto }));
+
             h += `<tr>
-                ${isAdmin ? `<td><input type="checkbox" class="form-check-input check-user" value="${u.ID}" onchange="toggleBulkDeleteUsersBtn()"></td>` : ''}
-                <td>
-                    <div class="d-flex align-items-center">
-                        <img src="${u.Foto || 'https://via.placeholder.com/40'}" class="rounded-circle me-3 shadow-sm" width="40" height="40" style="object-fit:cover;">
-                        <span class="fw-bold text-dark">${u.Nama}</span>
-                    </div>
-                </td>
-                <td>${u.TglLahir || '-'}</td>
-                <td>${u.Username}</td>
-                <td><span class="badge bg-${String(u.Role).trim().toLowerCase()==='admin'?'danger':(String(u.Role).trim().toLowerCase()==='guru'?'warning text-dark':'primary')}">${u.Role}</span></td>
-                <td>${u.Kelas || '-'}</td>
-                <td>${u.Sekolah || '-'}</td>
+                ${isAdmin ? `<td><input type="checkbox" class="form-check-input check-user" value="${uId}" onchange="toggleBulkDeleteUsersBtn()"></td>` : ''}
+                <td><div class="d-flex align-items-center"><img src="${uFoto}" class="rounded-circle me-3 shadow-sm" width="40" height="40" style="object-fit:cover;"><span class="fw-bold text-dark">${uNama}</span></div></td>
+                <td>${uTgl}</td>
+                <td>${uUsername}</td>
+                <td><span class="badge bg-${String(uRole).toLowerCase()==='admin'?'danger':(String(uRole).toLowerCase()==='guru'?'warning text-dark':'primary')}">${uRole}</span></td>
+                <td>${uKelas}</td>
+                <td>${uSekolah}</td>
                 ${canEdit ? `<td>
                     <button class="btn btn-sm btn-outline-dark me-1 rounded-circle" onclick="editUser('${safeData}')" title="Edit"><i class="fas fa-edit"></i></button>
-                    ${isAdmin ? `<button class="btn btn-sm btn-outline-danger rounded-circle" onclick="delUser('${u.ID}')" title="Hapus"><i class="fas fa-trash"></i></button>` : ''}
+                    ${isAdmin ? `<button class="btn btn-sm btn-outline-danger rounded-circle" onclick="delUser('${uId}')" title="Hapus"><i class="fas fa-trash"></i></button>` : ''}
                 </td>` : ''}
             </tr>`;
         });
     }
-    
     $('#users-tbody').html(h);
     $('#check-all-users').prop('checked', false);
     if(isAdmin) toggleBulkDeleteUsersBtn();
 }
+
 // Logika Upload Foto Masal (Mencocokkan nama file dengan Username)
 async function handleBulkPhotoUpload(event) {
     const files = event.target.files;
@@ -2654,15 +2677,108 @@ function renderAbsenAdmin(data) {
     $('#content-area').html(h);
 }
 
-function renderAbsenSiswa(data) {
-    let h = `<h5 class="fw-bold text-primary mb-4"><i class="fas fa-clipboard-check me-2"></i>Riwayat Kehadiran Saya</h5>
-             <div class="card border-0 shadow-sm rounded-4 overflow-hidden p-3"><table class="table table-hover align-middle text-center mb-0">
-             <thead class="table-light"><tr><th>Tanggal Absen</th><th>Status Kehadiran</th></tr></thead><tbody>`;
-    if(!data || data.length === 0) { h += `<tr><td colspan="2" class="text-muted py-4">Anda belum pernah melakukan absensi harian.</td></tr>`; }
-    else { data.forEach(a => h += `<tr><td class="fw-medium">${a.Tanggal}</td><td><span class="badge bg-success rounded-pill px-4 py-2"><i class="fas fa-check-circle me-1"></i> Hadir</span></td></tr>`); }
-    h += `</tbody></table></div>`;
+window.allAbsenData = [];
+window.currentFilteredAbsen = [];
+
+function renderAbsenAdmin(data) {
+    window.allAbsenData = data || [];
+    window.currentFilteredAbsen = window.allAbsenData;
+    
+    let uniqueKelas = [...new Set(window.allAbsenData.map(a => a.Kelas || a.kelas || ''))].filter(Boolean).sort();
+    let optKelas = `<option value="">Semua Kelas</option>` + uniqueKelas.map(k => `<option value="${k}">${k}</option>`).join('');
+
+    let h = `
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
+        <h5 class="fw-bold text-primary mb-0"><i class="fas fa-clipboard-user me-2"></i>Rekap Absensi Harian</h5>
+        <button class="btn btn-success rounded-pill px-4 shadow-sm fw-bold" onclick="printAbsen()"><i class="fas fa-print me-2"></i> Cetak Rekap</button>
+    </div>
+    
+    <div class="row g-2 mb-3 p-3 bg-white rounded-4 shadow-sm border">
+        <div class="col-md-4">
+            <label class="small fw-bold text-muted ms-1">Cari Nama Siswa</label>
+            <input type="text" id="filter-absen-nama" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Ketik nama..." onkeyup="applyFilterAbsen()">
+        </div>
+        <div class="col-md-4">
+            <label class="small fw-bold text-muted ms-1">Tanggal Absen</label>
+            <input type="date" id="filter-absen-tgl" class="form-control bg-light border-0 rounded-pill px-3" onchange="applyFilterAbsen()">
+        </div>
+        <div class="col-md-4">
+            <label class="small fw-bold text-muted ms-1">Filter Kelas</label>
+            <select id="filter-absen-kelas" class="form-select bg-light border-0 rounded-pill px-3" onchange="applyFilterAbsen()">
+                ${optKelas}
+            </select>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-center">
+                <thead class="table-light"><tr><th>Tanggal</th><th class="text-start">Nama Siswa</th><th>Kelas</th><th>Sekolah</th><th>Status</th></tr></thead>
+                <tbody id="absen-tbody"></tbody>
+            </table>
+        </div>
+    </div>`;
+    
     $('#content-area').html(h);
+    renderAbsenRows(window.allAbsenData);
 }
+
+function renderAbsenRows(data) {
+    let h = '';
+    if(!data || data.length === 0) { 
+        h = `<tr><td colspan="5" class="text-muted py-4">Belum ada data absensi yang sesuai.</td></tr>`; 
+    } else { 
+        data.forEach(a => { 
+            h += `<tr><td class="fw-medium">${a.Tanggal || a.tanggal}</td><td class="text-start fw-bold">${a.Nama || a.nama}</td><td>${a.Kelas || a.kelas}</td><td>${a.Sekolah || a.sekolah}</td><td><span class="badge bg-success rounded-pill px-3"><i class="fas fa-check me-1"></i> ${a.Status || a.status}</span></td></tr>`; 
+        }); 
+    }
+    $('#absen-tbody').html(h);
+}
+
+function applyFilterAbsen() {
+    let nama = $('#filter-absen-nama').val().toLowerCase();
+    let tgl = $('#filter-absen-tgl').val();
+    let kelas = $('#filter-absen-kelas').val();
+    
+    window.currentFilteredAbsen = window.allAbsenData.filter(a => {
+        let matchNama = (a.Nama || a.nama || "").toLowerCase().includes(nama);
+        let matchTgl = tgl === "" || (a.Tanggal || a.tanggal) === tgl;
+        let matchKelas = kelas === "" || (a.Kelas || a.kelas) === kelas;
+        return matchNama && matchTgl && matchKelas;
+    });
+    renderAbsenRows(window.currentFilteredAbsen);
+}
+
+function printAbsen() {
+    let data = window.currentFilteredAbsen;
+    if(!data || data.length === 0) return Swal.fire('Kosong', 'Tidak ada data untuk dicetak.', 'info');
+    
+    let tglStr = $('#filter-absen-tgl').val() || 'Semua Tanggal';
+    let klsStr = $('#filter-absen-kelas').val() || 'Semua Kelas';
+    
+    let html = `
+    <div style="text-align:center; padding-bottom:10px; margin-bottom:20px;">
+        <h3 style="margin:0; color:#0f5132; text-decoration: underline;">REKAPITULASI ABSENSI SISWA</h3>
+        <p style="margin:5px 0;"><strong>Tanggal:</strong> ${tglStr} | <strong>Kelas:</strong> ${klsStr}</p>
+    </div>
+    <table style="width:100%; border-collapse:collapse; margin-bottom:30px; font-size:14px;" border="1">
+        <thead style="background:#f1f5f9;"><tr><th style="padding:8px;">No</th><th style="padding:8px;">Tanggal</th><th style="padding:8px;">Nama Siswa</th><th style="padding:8px;">Kelas</th><th style="padding:8px;">Status</th></tr></thead>
+        <tbody>`;
+    
+    data.forEach((a, i) => { 
+        html += `<tr><td style="padding:8px; text-align:center;">${i + 1}</td><td style="padding:8px; text-align:center;">${a.Tanggal || a.tanggal}</td><td style="padding:8px;">${a.Nama || a.nama}</td><td style="padding:8px; text-align:center;">${a.Kelas || a.kelas}</td><td style="padding:8px; text-align:center;">${a.Status || a.status}</td></tr>`; 
+    });
+    
+    html += `</tbody></table>
+    <div style="text-align:right; margin-top:40px;">
+        <p>Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</p>
+        <p style="margin-bottom:70px;">Guru Kelas / Pengawas</p>
+        <p><strong>${user.Nama}</strong></p>
+    </div>`;
+    
+    downloadHTMLToPDF('Rekap_Absensi', html);
+}
+
 
 let globalRaportData = {};
 function renderRaportMenu(data) {
