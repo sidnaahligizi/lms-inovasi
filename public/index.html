@@ -91,22 +91,19 @@
             <li><a onclick="loadPage('admin-ujian')" class="nav-link"><i class="fas fa-calendar-alt me-3"></i>Manajemen Ujian</a></li>
             <li><a onclick="loadPage('admin-absen')" class="nav-link"><i class="fas fa-clipboard-user me-3"></i>Rekap Absensi</a></li>
             <li><a onclick="loadPage('admin-users')" class="nav-link"><i class="fas fa-users me-3"></i>Data Peserta</a></li>
-        </ul>     
+        </ul>        
+        
         <ul class="list-unstyled components hidden" id="menu-guru">
             <li><a onclick="loadPage('admin-home')" class="nav-link active"><i class="fas fa-home me-3"></i>Dashboard</a></li>
-            <li><a onclick="loadPage('admin-users')" class="nav-link"><i class="fas fa-users me-3"></i>Data Peserta</a></li>
-            <!-- Menu Bank Soal dikembalikan agar Guru bisa Download Soal yang diizinkan Admin -->
-            <li><a onclick="loadPage('admin-ujian')" class="nav-link"><i class="fas fa-file-alt me-3"></i>Bank Soal TKA</a></li>
-            <li><a onclick="loadPage('hasil-rekap')" class="nav-link"><i class="fas fa-poll me-3"></i>Hasil Nilai</a></li>
-            <li><a onclick="loadPage('guru-monitoring')" class="nav-link"><i class="fas fa-desktop me-3"></i>Live Monitor</a></li>
-            <li><a onclick="loadPage('admin-administrasi')" class="nav-link text-info"><i class="fas fa-print me-3"></i>Administrasi</a></li>
+            <li><a onclick="loadPage('admin-materi')" class="nav-link"><i class="fas fa-book-open me-3"></i>Materi & Modul</a></li>
+            <li><a onclick="loadPage('admin-ujian')" class="nav-link"><i class="fas fa-calendar-alt me-3"></i>Bank Soal</a></li>
+            <li><a onclick="loadPage('admin-absen')" class="nav-link"><i class="fas fa-clipboard-user me-3"></i>Rekap Absensi</a></li>
         </ul>
 
-<ul class="list-unstyled components hidden" id="menu-siswa">
+        <ul class="list-unstyled components hidden" id="menu-siswa">
             <li><a onclick="loadPage('siswa-home')" class="nav-link active"><i class="fas fa-home me-3"></i>Dashboard Utama</a></li>
             <li><a onclick="loadPage('siswa-materi')" class="nav-link"><i class="fas fa-book me-3"></i>Materi Belajar</a></li>
-            <li><a onclick="loadPage('siswa-ujian')" class="nav-link"><i class="fas fa-pencil-alt me-3"></i>Daftar Ujian</a></li>
-            <li><a onclick="loadPage('siswa-absen')" class="nav-link"><i class="fas fa-clipboard-check me-3"></i>Absensi Saya</a></li>
+            <li><a onclick="loadPage('siswa-ujian')" class="nav-link"><i class="fas fa-pencil-alt me-3"></i>Riwayat Ujian</a></li>
         </ul>
     <div id="content">
         <nav class="navbar navbar-light bg-white rounded-4 shadow-sm mb-4 p-3 d-flex justify-content-between align-items-center border">
@@ -493,11 +490,30 @@ function initDash() {
     $('#user-role-disp').text(role.toUpperCase());
     $('.components').addClass('hidden');
     
-    if(role === 'siswa') { $('#menu-siswa').removeClass('hidden'); loadPage('siswa-home'); } 
-    else if(role === 'guru') { $('#menu-guru').removeClass('hidden'); loadPage('admin-home'); } 
-    else if(role === 'admin') { $('#menu-admin').removeClass('hidden'); loadPage('admin-home'); } 
-    else { Swal.fire('Akses Ditolak', 'Role akun Anda tidak dikenali sistem.', 'error'); }
+    if(role === 'siswa') { 
+        $('#menu-siswa').removeClass('hidden'); loadPage('siswa-home'); 
+    } 
+    else if(role === 'guru') { 
+        $('#menu-guru').removeClass('hidden'); loadPage('admin-home'); 
+    } 
+    else if(role === 'admin') { 
+        $('#menu-admin').removeClass('hidden'); loadPage('admin-home'); 
+    } 
+    else { 
+        // Auto logout jika role tidak valid agar tidak nyangkut (loop)
+        Swal.fire({
+            title: 'Akses Ditolak', 
+            text: 'Role akun Anda tidak dikenali sistem. Silakan login ulang.', 
+            icon: 'error',
+            confirmButtonText: 'Kembali ke Login',
+            allowOutsideClick: false
+        }).then(() => {
+            localStorage.clear();
+            window.location.href = '/';
+        });
+    }
 }
+
 function appRefresh() { const activeLink = $('.nav-link.active'); if (activeLink.length > 0) { const onclickAttr = activeLink.attr('onclick'); if(onclickAttr) { const match = onclickAttr.match(/'([^']+)'/); if(match) loadPage(match[1]); } } }
 function loadPage(page) {
     clearInterval(timerInt); clearInterval(monitorInterval); clearInterval(autosaveInterval); disableSecurity();
