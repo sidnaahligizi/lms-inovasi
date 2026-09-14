@@ -97,6 +97,8 @@
             <li><a onclick="loadPage('admin-ujian')" class="nav-link"><i class="fas fa-calendar-alt me-3"></i>Manajemen Ujian</a></li>
             <li><a onclick="loadPage('admin-absen')" class="nav-link"><i class="fas fa-clipboard-user me-3"></i>Rekap Absensi</a></li>
             <li><a onclick="loadPage('admin-users')" class="nav-link"><i class="fas fa-users me-3"></i>Data Peserta</a></li>
+            <li><a onclick="loadPage('admin-raport')" class="nav-link text-warning"><i class="fas fa-file-signature me-3"></i>Cetak Raport</a></li>
+
         </ul>        
         
         <!-- MENU GURU -->
@@ -105,6 +107,8 @@
             <li><a onclick="loadPage('admin-materi')" class="nav-link"><i class="fas fa-book-open me-3"></i>Materi & Modul</a></li>
             <li><a onclick="loadPage('admin-ujian')" class="nav-link"><i class="fas fa-calendar-alt me-3"></i>Bank Soal</a></li>
             <li><a onclick="loadPage('admin-absen')" class="nav-link"><i class="fas fa-clipboard-user me-3"></i>Rekap Absensi</a></li>
+            <li><a onclick="loadPage('admin-raport')" class="nav-link text-warning"><i class="fas fa-file-signature me-3"></i>Cetak Raport</a></li>
+
         </ul>
 
         <!-- MENU SISWA -->
@@ -643,69 +647,35 @@ function fetchLiveMonitor(isSilent = false) {
 // Fungsi untuk memuat kerangka Data Peserta beserta Filter Pencarian
     
 function renderUsers(users) {
-    window.allUsersData = users; // Simpan data global untuk filter
+    window.allUsersData = users; 
     const role = String(user.Role).trim().toLowerCase();
     const isAdmin = role === 'admin';
-    const canEdit = role === 'admin' || role === 'guru'; // Guru & Admin bisa edit
-    
-    // Ambil daftar sekolah unik untuk dropdown filter
+    const canEdit = role === 'admin' || role === 'guru'; 
     let uniqueSekolah = [...new Set(users.map(u => u.Sekolah || ''))].filter(Boolean);
 
     let h = `<div class="d-flex justify-content-between mb-3 flex-wrap gap-2 align-items-center">
         <div>
-            ${isAdmin ? `
-            <button class="btn btn-success shadow-sm me-2 rounded-pill px-3 mb-2" onclick="$('#modalUser').modal('show');$('#modalUser form')[0].reset();$('#mu-id').val('');$('#mu-foto-b64').val('');"><i class="fas fa-plus me-1"></i> Tambah User</button>
+            ${canEdit ? `
+            <button class="btn btn-success shadow-sm me-2 rounded-pill px-3 mb-2" onclick="$('#modalUser').modal('show');$('#modalUser form')[0].reset();$('#mu-id').val('');$('#mu-foto-b64').val('');"><i class="fas fa-plus me-1"></i> Tambah Siswa</button>
             <label class="btn btn-primary shadow-sm m-0 me-2 rounded-pill px-3 mb-2"><i class="fas fa-upload me-1"></i> Upload Excel <input type="file" hidden accept=".xlsx,.xls" onchange="handleUploadUsersExcel(event)"></label>
             <button class="btn btn-outline-success shadow-sm m-0 me-2 rounded-pill px-3 mb-2" onclick="downloadUserTemplate()"><i class="fas fa-download me-1"></i> Template Excel</button>
-            <button class="btn btn-danger shadow-sm m-0 rounded-pill px-3 mb-2 fw-bold hidden" id="btn-bulk-delete-users" onclick="bulkDeleteUsers()"><i class="fas fa-trash me-1"></i> Hapus Terpilih</button>
-            ` : `<h5 class="fw-bold text-primary mb-0"><i class="fas fa-users me-2"></i>Data Siswa Anda</h5>`}
+            ` : `<h5 class="fw-bold text-primary mb-0"><i class="fas fa-users me-2"></i>Data Siswa</h5>`}
+            
+            ${isAdmin ? `<button class="btn btn-danger shadow-sm m-0 rounded-pill px-3 mb-2 fw-bold hidden" id="btn-bulk-delete-users" onclick="bulkDeleteUsers()"><i class="fas fa-trash me-1"></i> Hapus Terpilih</button>` : ''}
             
             ${canEdit ? `
-            <label class="btn btn-outline-primary shadow-sm m-0 me-2 rounded-pill px-3 mb-2" title="Nama file harus sama dengan Username (contoh: siswa01.jpg)">
-                <i class="fas fa-images me-1"></i> Upload Foto Masal
-                <input type="file" hidden multiple accept="image/*" onchange="handleBulkPhotoUpload(event)">
-            </label>
-            ` : ''}
+            <label class="btn btn-outline-primary shadow-sm m-0 ms-2 rounded-pill px-3 mb-2" title="Nama file = Username">
+                <i class="fas fa-images me-1"></i> Upload Foto Masal <input type="file" hidden multiple accept="image/*" onchange="handleBulkPhotoUpload(event)">
+            </label>` : ''}
         </div>
     </div>
     
-    <!-- Area Filter -->
     <div class="row g-2 mb-3 p-3 bg-white rounded-4 shadow-sm border">
-        <div class="col-md-6">
-            <label class="small fw-bold text-muted ms-1">Cari Nama / Username Siswa</label>
-            <input type="text" id="filter-user-nama" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Ketik nama atau username..." onkeyup="applyFilterUsers()">
-        </div>
-        <div class="col-md-6">
-            <label class="small fw-bold text-muted ms-1">Filter Sekolah</label>
-            <select id="filter-user-sekolah" class="form-select bg-light border-0 rounded-pill px-3" onchange="applyFilterUsers()">
-                <option value="">Semua Sekolah</option>
-                ${uniqueSekolah.map(s => `<option value="${s}">${s}</option>`).join('')}
-            </select>
-        </div>
+        <div class="col-md-6"><label class="small fw-bold text-muted ms-1">Cari Siswa</label><input type="text" id="filter-user-nama" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Ketik nama / username..." onkeyup="applyFilterUsers()"></div>
+        <div class="col-md-6"><label class="small fw-bold text-muted ms-1">Filter Sekolah</label><select id="filter-user-sekolah" class="form-select bg-light border-0 rounded-pill px-3" onchange="applyFilterUsers()"><option value="">Semua Sekolah</option>${uniqueSekolah.map(s => `<option value="${s}">${s}</option>`).join('')}</select></div>
     </div>
 
-    <!-- Tabel Peserta -->
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" id="tbl-users">
-                    <thead class="table-light">
-                        <tr>
-                            ${isAdmin ? `<th width="50"><input type="checkbox" class="form-check-input" id="check-all-users" onchange="toggleAllUsers(this)"></th>` : ''}
-                            <th>Foto & Nama</th>
-                            <th>Tgl Lahir</th>
-                            <th>Username</th>
-                            <th>Role</th>
-                            <th>Kelas</th>
-                            <th>Sekolah</th>
-                            ${canEdit ? '<th>Aksi</th>' : ''}
-                        </tr>
-                    </thead>
-                    <tbody id="users-tbody"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>`;
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0" id="tbl-users"><thead class="table-light"><tr>${isAdmin ? `<th width="50"><input type="checkbox" class="form-check-input" id="check-all-users" onchange="toggleAllUsers(this)"></th>` : ''}<th>Foto & Nama</th><th>Tgl Lahir</th><th>Username</th><th>Role</th><th>Kelas</th><th>Sekolah</th>${canEdit ? '<th>Aksi</th>' : ''}</tr></thead><tbody id="users-tbody"></tbody></table></div></div></div>`;
     
     $('#content-area').html(h);
     renderUserRows(users);
