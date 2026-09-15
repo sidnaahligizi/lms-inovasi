@@ -2506,70 +2506,58 @@ function handleResetCache() {
 }
     // Fungsi untuk memunculkan modal dan mengisi data peserta saat tombol Edit diklik
 function editUser(str) {
-    // Decode data JSON yang dikirim dari tombol
     const d = JSON.parse(decodeURIComponent(str));
-    
-    // Masukkan data ke dalam form modal
-    $('#mu-id').val(d.ID);
-    $('#mu-nama').val(d.Nama);
-    $('#mu-tgl').val(d.TglLahir || '');
-    $('#mu-user').val(d.Username);
-    $('#mu-pass').val(d.Password);
-    $('#mu-role').val(String(d.Role).toLowerCase());
-    $('#mu-kelas').val(d.Kelas || '');
-    $('#mu-sekolah').val(d.Sekolah || '');
-    $('#mu-foto-b64').val(d.Foto || ''); // Foto dikonversi dalam base64
-    
-    // Kosongkan input file agar tidak error
+    $('#mu-id').val(d.ID || d.id);
+    $('#mu-nama').val(d.Nama || d.nama);
+    $('#mu-tgl').val(d.TglLahir || d.tgllahir || '');
+    $('#mu-user').val(d.Username || d.username);
+    $('#mu-pass').val(d.Password || d.password);
+    $('#mu-role').val(String(d.Role || d.role).toLowerCase());
+    $('#mu-kelas').val(d.Kelas || d.kelas || '');
+    $('#mu-sekolah').val(d.Sekolah || d.sekolah || '');
+    $('#mu-foto-b64').val(d.Foto || d.foto || ''); 
+    $('#mu-nis').val(d.NIS || d.nis || '');
+    $('#mu-nisn').val(d.NISN || d.nisn || '');
+    $('#mu-jk').val(d.JenisKelamin || d.jeniskelamin || 'L');
+    $('#mu-tempatlahir').val(d.TempatLahir || d.tempatlahir || '');
+    $('#mu-nik').val(d.NIK || d.nik || '');
+    $('#mu-nokk').val(d.NoKK || d.nokk || '');
+    $('#mu-desa').val(d.DesaKelurahan || d.desakelurahan || '');
+    $('#mu-alamat').val(d.Alamat || d.alamat || '');
+    $('#mu-rtrw').val(d.RTRW || d.rtrw || '');
+    $('#mu-kecamatan').val(d.Kecamatan || d.kecamatan || '');
+    $('#mu-kabupaten').val(d.KabupatenKota || d.kabupatenkota || '');
+    $('#mu-kodepos').val(d.KodePos || d.kodepos || '');
+    $('#mu-ayah').val(d.NamaAyah || d.namaayah || '');
+    $('#mu-ibu').val(d.NamaIbu || d.namaibu || '');
+    $('#mu-wali').val(d.NamaWali || d.namawali || '');
     $('#mu-foto').val('');
-    
-    // Tampilkan modal
     $('#modalUser').modal('show');
 }
 
-// Fungsi untuk menyimpan perubahan / menambah akun peserta baru ke database
 function saveUser() {
-    // Ambil semua data dari form
     const d = {
-        id: $('#mu-id').val(),
-        nama: $('#mu-nama').val(),
-        tglLahir: $('#mu-tgl').val(),
-        username: $('#mu-user').val(),
-        password: $('#mu-pass').val(),
-        role: $('#mu-role').val(),
-        kelas: $('#mu-kelas').val(),
-        sekolah: $('#mu-sekolah').val(),
-        foto: $('#mu-foto-b64').val()
+        id: $('#mu-id').val(), nama: $('#mu-nama').val(), tglLahir: $('#mu-tgl').val(),
+        username: $('#mu-user').val(), password: $('#mu-pass').val(), role: $('#mu-role').val(),
+        kelas: $('#mu-kelas').val(), sekolah: $('#mu-sekolah').val(), foto: $('#mu-foto-b64').val(),
+        nis: $('#mu-nis').val(), nisn: $('#mu-nisn').val(), jk: $('#mu-jk').val(),
+        tempatLahir: $('#mu-tempatlahir').val(), nik: $('#mu-nik').val(), nokk: $('#mu-nokk').val(),
+        desa: $('#mu-desa').val(), alamat: $('#mu-alamat').val(), rtrw: $('#mu-rtrw').val(),
+        kecamatan: $('#mu-kecamatan').val(), kabupaten: $('#mu-kabupaten').val(),
+        kodepos: $('#mu-kodepos').val(), ayah: $('#mu-ayah').val(), ibu: $('#mu-ibu').val(), wali: $('#mu-wali').val()
     };
-    
-    // Validasi singkat
-    if(!d.nama || !d.username || !d.password) {
-        return Swal.fire('Data Tidak Lengkap', 'Nama, Username, dan Password wajib diisi!', 'warning');
-    }
+    if(!d.nama || !d.username || !d.password) return Swal.fire('Data Tidak Lengkap', 'Nama, Username, dan Password wajib diisi!', 'warning');
 
-    // Ubah status tombol agar tidak diklik berkali-kali
-    const btn = $('#frm-user button[type="submit"]');
-    const originalText = btn.html();
+    const btn = $('#frm-user button[type="submit"]'); const originalText = btn.html();
     btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i> MENYIMPAN...');
-    
     showLoad(true);
     
-    // Kirim data ke backend (route.js)
     google.script.run.withSuccessHandler(res => {
-        showLoad(false);
-        btn.prop('disabled', false).html(originalText);
-        
-        if(res.status === 'success') {
-            $('#modalUser').modal('hide');
-            toast('success', res.msg);
-            loadPage('admin-users'); // Segarkan otomatis tabel peserta
-        } else {
-            Swal.fire('Gagal Menyimpan', res.msg, 'error');
-        }
+        showLoad(false); btn.prop('disabled', false).html(originalText);
+        if(res.status === 'success') { $('#modalUser').modal('hide'); toast('success', res.msg); loadPage('admin-users'); } 
+        else { Swal.fire('Gagal Menyimpan', res.msg, 'error'); }
     }).withFailureHandler(err => {
-        showLoad(false);
-        btn.prop('disabled', false).html(originalText);
-        Swal.fire('Koneksi Terputus', 'Gagal menghubungi server.', 'error');
+        showLoad(false); btn.prop('disabled', false).html(originalText); Swal.fire('Koneksi Terputus', err.message || 'Gagal menghubungi server.', 'error');
     }).adminManageUser('save', d);
 }
 
