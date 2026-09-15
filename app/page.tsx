@@ -17,6 +17,7 @@ export default function Page() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
@@ -41,58 +42,139 @@ export default function Page() {
 
   return (
     <>
-      <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
       <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
       <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 
-      <div style={{ fontFamily: "'Poppins', sans-serif", minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: "linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%)", padding: '20px' }}>
-        <div className="container shadow-lg rounded-4 overflow-hidden bg-white" style={{ maxWidth: '1100px' }}>
-          <div className="row g-0">
-            {/* Bagian Info (Kiri) */}
-            <div className="col-lg-6 text-white p-5 d-flex flex-column justify-content-center" style={{ background: "linear-gradient(135deg, #064e3b 0%, #15803d 100%)" }}>
-              <div className="text-center mb-4">
-                 <img src="https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq" alt="Logo" width="100" className="bg-white rounded-circle p-2 shadow" />
-              </div>
-              <h2 className="fw-bold mb-3 text-center text-warning">Selamat Datang di Portal LMS</h2>
-              <h4 className="mb-4 text-center">KKGMI Kota Surabaya 10</h4>
-              <p className="lead fs-6 text-center mb-4 opacity-75">Sistem Pembelajaran Digital dan Ujian Berbasis Komputer (CBT) Terpadu untuk kemudahan akses pendidikan yang lebih baik.</p>
-              
-              <div className="bg-white text-dark p-4 rounded-4 shadow-sm mb-3">
-                <h6 className="fw-bold text-success mb-2"><i className="fas fa-info-circle me-2"></i>Informasi Portal</h6>
-                <ul className="mb-0 small text-muted list-unstyled" style={{ lineHeight: '1.8' }}>
-                  <li><i className="fas fa-check text-success me-2"></i> Akses Modul & Materi Kapan Saja</li>
-                  <li><i className="fas fa-check text-success me-2"></i> Pelaksanaan Ujian (CBT) Akurat</li>
-                  <li><i className="fas fa-check text-success me-2"></i> Pantauan Nilai & Absensi Real-time</li>
-                </ul>
-              </div>
+      <div style={{ fontFamily: "'Poppins', sans-serif", minHeight: '100vh', backgroundColor: '#ffffff' }} className="d-flex flex-column flex-lg-row">
+        
+        {/* PANEL KIRI: INFORMASI LMS & SEKOLAH (Tampilan Penuh) */}
+        <div className="col-lg-7 d-flex flex-column justify-content-between p-4 p-md-5 text-white position-relative overflow-hidden" 
+             style={{ background: 'linear-gradient(135deg, #064e3b 0%, #115e32 100%)' }}>
+            
+            {/* Ornamen Latar Belakang (Estetika) */}
+            <div className="position-absolute top-0 start-0 w-100 h-100 opacity-25" 
+                 style={{ backgroundImage: 'radial-gradient(circle at top right, #d4af37 0%, transparent 40%), radial-gradient(circle at bottom left, #ffffff 0%, transparent 30%)', zIndex: 1 }}></div>
+
+            <div className="position-relative" style={{ zIndex: 2 }}>
+                {/* Header Logo & Judul */}
+                <div className="d-flex align-items-center mb-5">
+                    <img src="https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq" alt="Logo KKGMI" className="bg-white rounded-circle p-1 shadow-lg me-3" width="80" height="80" style={{ objectFit: 'contain' }} />
+                    <div>
+                        <h4 className="fw-bold mb-0 text-warning" style={{ letterSpacing: '1px' }}>PORTAL LMS & CBT</h4>
+                        <p className="mb-0 fs-6 opacity-75">Kelompok Kerja Guru Madrasah Ibtidaiyah</p>
+                    </div>
+                </div>
+
+                {/* Deskripsi Utama */}
+                <h1 className="fw-bold mb-4" style={{ fontSize: '3rem', lineHeight: '1.2' }}>
+                    Sistem Belajar Digital <br/><span className="text-warning">KKGMI Surabaya 10</span>
+                </h1>
+                <p className="lead opacity-75 mb-5 w-lg-85" style={{ fontSize: '1.1rem', lineHeight: '1.8' }}>
+                    Platform pendidikan terpadu yang dirancang khusus untuk memfasilitasi proses belajar mengajar secara interaktif, pelaksanaan ujian berbasis komputer yang jujur dan akurat, serta pemantauan rekam jejak akademik peserta didik.
+                </p>
+
+                {/* Grid Fitur & Keunggulan */}
+                <div className="row g-4 mt-2">
+                    <div className="col-md-6">
+                        <div className="d-flex align-items-start">
+                            <div className="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style={{ width: '45px', height: '45px' }}>
+                                <i className="fas fa-book-open fs-5"></i>
+                            </div>
+                            <div className="ms-3">
+                                <h6 className="fw-bold mb-1">Materi & Modul Digital</h6>
+                                <p className="small opacity-75 mb-0">Akses bahan ajar, video, dan ringkasan kapan saja di mana saja.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-6">
+                        <div className="d-flex align-items-start">
+                            <div className="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style={{ width: '45px', height: '45px' }}>
+                                <i className="fas fa-laptop-code fs-5"></i>
+                            </div>
+                            <div className="ms-3">
+                                <h6 className="fw-bold mb-1">Computer Based Test (CBT)</h6>
+                                <p className="small opacity-75 mb-0">Sistem ujian online anti-kecurangan dengan evaluasi otomatis.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-6">
+                        <div className="d-flex align-items-start">
+                            <div className="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style={{ width: '45px', height: '45px' }}>
+                                <i className="fas fa-chart-line fs-5"></i>
+                            </div>
+                            <div className="ms-3">
+                                <h6 className="fw-bold mb-1">Rekap Nilai Real-time</h6>
+                                <p className="small opacity-75 mb-0">Pantau perkembangan akademik dan unduh raport secara langsung.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-6">
+                        <div className="d-flex align-items-start">
+                            <div className="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style={{ width: '45px', height: '45px' }}>
+                                <i className="fas fa-clipboard-user fs-5"></i>
+                            </div>
+                            <div className="ms-3">
+                                <h6 className="fw-bold mb-1">Presensi Terintegrasi</h6>
+                                <p className="small opacity-75 mb-0">Manajemen kehadiran harian yang terhubung dengan laporan akademik.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Bagian Login (Kanan) */}
-            <div className="col-lg-6 p-5 d-flex flex-column justify-content-center bg-light">
-              <div className="text-center mb-4">
-                <h3 className="fw-bold" style={{ color: '#064e3b' }}>MASUK AKUN</h3>
-                <p className="text-muted small">Silakan gunakan identitas yang telah terdaftar</p>
-              </div>
-              <form onSubmit={handleLogin}>
-                <div className="form-floating mb-3">
-                  <input type="text" className="form-control border-secondary shadow-sm rounded-3" placeholder="User" required value={username} onChange={(e) => setUsername(e.target.value)} />
-                  <label>Username / NISN</label>
-                </div>
-                <div className="form-floating mb-3 position-relative">
-                  <input type={showPassword ? "text" : "password"} className="form-control border-secondary shadow-sm rounded-3" placeholder="Pass" required value={password} onChange={(e) => setPassword(e.target.value)} />
-                  <label>Password</label>
-                  <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'} position-absolute top-50 end-0 translate-middle-y me-3 text-muted`} style={{ cursor: 'pointer', zIndex: 10 }} onClick={() => setShowPassword(!showPassword)}></i>
-                </div>
-                <div className="form-floating mb-4">
-                  <input type="date" className="form-control border-secondary shadow-sm rounded-3" value={tglLahir} onChange={(e) => setTglLahir(e.target.value)} />
-                  <label>Tanggal Lahir (Wajib bagi Siswa)</label>
-                </div>
-                <button type="submit" disabled={loading} className="btn w-100 py-3 fw-bold shadow-sm text-white rounded-3" style={{ background: '#d4af37', border: 'none', fontSize: '1.1rem' }}>
-                  {loading ? <><i className="fas fa-spinner fa-spin me-2"></i>MEMPROSES...</> : <><i className="fas fa-sign-in-alt me-2"></i> MASUK SEKARANG</>}
-                </button>
-              </form>
+            {/* Footer Kiri */}
+            <div className="mt-5 mt-lg-auto pt-4 border-top border-light border-opacity-25 position-relative" style={{ zIndex: 2 }}>
+                <p className="small mb-0 opacity-75"><i className="fas fa-shield-alt me-2"></i>Sistem Terenkripsi & Aman | Hak Cipta &copy; {new Date().getFullYear()} KKGMI Surabaya 10</p>
             </div>
-          </div>
+        </div>
+
+        {/* PANEL KANAN: FORM LOGIN */}
+        <div className="col-lg-5 d-flex align-items-center justify-content-center p-4 p-md-5 bg-white position-relative">
+            <div className="w-100" style={{ maxWidth: '420px' }}>
+                <div className="text-center mb-5">
+                    <h2 className="fw-bold text-dark mb-2">Masuk Akun</h2>
+                    <p className="text-muted">Silakan gunakan identitas yang telah terdaftar di sekolah.</p>
+                </div>
+
+                <form onSubmit={handleLogin}>
+                    {/* Input Username */}
+                    <div className="form-floating mb-3">
+                        <input type="text" className="form-control bg-light border-0 shadow-sm" placeholder="Username / NISN" style={{ borderRadius: '12px' }} required value={username} onChange={(e) => setUsername(e.target.value)} />
+                        <label className="text-muted"><i className="fas fa-user me-2"></i>Username / NISN</label>
+                    </div>
+                    
+                    {/* Input Password */}
+                    <div className="form-floating mb-3 position-relative">
+                        <input type={showPassword ? "text" : "password"} className="form-control bg-light border-0 shadow-sm" placeholder="Password" style={{ borderRadius: '12px' }} required value={password} onChange={(e) => setPassword(e.target.value)} />
+                        <label className="text-muted"><i className="fas fa-lock me-2"></i>Password</label>
+                        <button type="button" className="btn position-absolute top-50 end-0 translate-middle-y me-2 text-muted border-0 bg-transparent" onClick={() => setShowPassword(!showPassword)}>
+                            <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                        </button>
+                    </div>
+
+                    {/* Input Tanggal Lahir */}
+                    <div className="form-floating mb-4">
+                        <input type="date" className="form-control bg-light border-0 shadow-sm" style={{ borderRadius: '12px' }} value={tglLahir} onChange={(e) => setTglLahir(e.target.value)} />
+                        <label className="text-muted"><i className="fas fa-calendar-alt me-2"></i>Tanggal Lahir <small className="text-danger">(Wajib Siswa)</small></label>
+                    </div>
+
+                    {/* Tombol Login */}
+                    <button type="submit" disabled={loading} className="btn w-100 py-3 fw-bold shadow text-white" 
+                            style={{ background: '#d4af37', borderRadius: '12px', fontSize: '1.1rem', transition: 'all 0.3s' }}>
+                        {loading ? (
+                            <><i className="fas fa-spinner fa-spin me-2"></i> MEMPROSES...</>
+                        ) : (
+                            <><i className="fas fa-sign-in-alt me-2"></i> MASUK SEKARANG</>
+                        )}
+                    </button>
+                </form>
+
+                {/* Bantuan */}
+                <div className="text-center mt-4">
+                    <p className="small text-muted mb-0">Lupa password atau gagal login? <br/><a href="#" className="text-success fw-bold text-decoration-none">Hubungi Admin Sekolah / Wali Kelas</a></p>
+                </div>
+            </div>
         </div>
       </div>
     </>
