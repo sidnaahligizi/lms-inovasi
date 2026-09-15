@@ -2629,110 +2629,57 @@ function saveUser() {
 }
 
 function loadPage(page) {
-    clearInterval(timerInt); 
-    clearInterval(monitorInterval); 
-    clearInterval(autosaveInterval); 
-    disableSecurity();
-    
-    $('#view-exam').addClass('hidden'); 
-    $('#view-dashboard').removeClass('hidden'); 
-    $('body').removeClass('exam-mode');
-    
+    clearInterval(timerInt); clearInterval(monitorInterval); clearInterval(autosaveInterval); disableSecurity();
+    $('#view-exam').addClass('hidden'); $('#view-dashboard').removeClass('hidden'); $('body').removeClass('exam-mode');
     $('#page-title').text(page.replace('-', ' ').toUpperCase());
-    $('.nav-link').removeClass('active'); 
-    $(`a[onclick="loadPage('${page}')"]`).addClass('active');
-    
-    if(window.innerWidth <= 992) { 
-        $('#sidebar').removeClass('active'); 
-        $('#sidebar-overlay').removeClass('active'); 
-    }
+    $('.nav-link').removeClass('active'); $(`a[onclick="loadPage('${page}')"]`).addClass('active');
+    if(window.innerWidth <= 992) { $('#sidebar').removeClass('active'); $('#sidebar-overlay').removeClass('active'); }
+
+    const handleErr = (err) => { showLoad(false); Swal.fire('Error', err.message || 'Koneksi ke server gagal. Cek koneksi Anda.', 'error'); };
 
     if(page === 'admin-users') {
         showLoad(true);
-        // Menambahkan user.Kelas untuk filter data
-        google.script.run.withSuccessHandler(r => { 
-            showLoad(false); 
-            if(r.status === 'success') renderUsers(r.data); 
-            else Swal.fire('Error', r.msg, 'error'); 
-        }).getUserList(user.Role, user.ID, user.Sekolah, user.Kelas);
+        google.script.run.withSuccessHandler(r => { showLoad(false); if(r.status === 'success') renderUsers(r.data); else Swal.fire('Error', r.msg, 'error'); }).withFailureHandler(handleErr).getUserList(user.Role, user.ID, user.Sekolah, user.Kelas);
         return;
     }
-    
     if(page === 'admin-cetak-identitas') {
         showLoad(true);
-        // Menambahkan user.Kelas untuk filter data
-        google.script.run.withSuccessHandler(r => { 
-            showLoad(false); 
-            if(r.status === 'success') { renderCetakIdentitas(r.data); } 
-        }).getUserList(user.Role, user.ID, user.Sekolah, user.Kelas);
+        google.script.run.withSuccessHandler(r => { showLoad(false); if(r.status === 'success') renderCetakIdentitas(r.data); }).withFailureHandler(handleErr).getUserList(user.Role, user.ID, user.Sekolah, user.Kelas);
         return;
     }
-    
     if(page === 'hasil-rekap') {
         $('#content-area').html('<div class="text-center p-5"><div class="spinner"></div></div>');
-        google.script.run.withSuccessHandler(r => { 
-            if(r.status === 'success') { recapAllData = r.data; renderRecapTable(); } 
-            else { $('#content-area').html(`<div class="alert alert-danger">${r.msg}</div>`); } 
-        }).getRecapList(user.Role, user.ID, user.Sekolah);
+        google.script.run.withSuccessHandler(r => { if(r.status === 'success') { recapAllData = r.data; renderRecapTable(); } else { $('#content-area').html(`<div class="alert alert-danger">${r.msg}</div>`); } }).withFailureHandler(handleErr).getRecapList(user.Role, user.ID, user.Sekolah);
         return;
     }
-    
-    if(page === 'guru-monitoring') { 
-        renderMonitoring(); 
-        return; 
-    }
-    
+    if(page === 'guru-monitoring') { renderMonitoring(); return; }
     if(page === 'admin-administrasi') {
         showLoad(true);
-        google.script.run.withSuccessHandler(r => { 
-            showLoad(false); 
-            if(r.status === 'success') { gAdminData = r; istrasi(); } 
-            else Swal.fire('Error', r.msg, 'error'); 
-        }).getAdminData(user.Role, user.ID, user.Kelas, user.Sekolah);
+        google.script.run.withSuccessHandler(r => { showLoad(false); if(r.status === 'success') { gAdminData = r; renderAdministrasi(); } else Swal.fire('Error', r.msg, 'error'); }).withFailureHandler(handleErr).getAdminData(user.Role, user.ID, user.Kelas, user.Sekolah);
         return;
     }
-
     if(page === 'admin-absen') {
         showLoad(true);
-        // Menambahkan user.Kelas untuk filter data
-        google.script.run.withSuccessHandler(r => { 
-            showLoad(false); 
-            if(r.status === 'success') renderAbsenAdmin(r.data); 
-        }).getAbsenRekap(user.Role, user.Sekolah, user.Kelas);
+        google.script.run.withSuccessHandler(r => { showLoad(false); if(r.status === 'success') renderAbsenAdmin(r.data); }).withFailureHandler(handleErr).getAbsenRekap(user.Role, user.Sekolah, user.Kelas);
         return;
     }
-
     if(page === 'siswa-absen') {
         showLoad(true);
-        google.script.run.withSuccessHandler(r => { 
-            showLoad(false); 
-            if(r.status === 'success') renderAbsenSiswa(r.data); 
-        }).getSiswaAbsen(user.ID);
+        google.script.run.withSuccessHandler(r => { showLoad(false); if(r.status === 'success') renderAbsenSiswa(r.data); }).withFailureHandler(handleErr).getSiswaAbsen(user.ID);
         return;
     }
-
     if(page === 'admin-raport') {
         showLoad(true);
-        // Menambahkan user.Kelas untuk filter data
-        google.script.run.withSuccessHandler(r => { 
-            showLoad(false); 
-            if(r.status === 'success') renderRaportMenu(r.data); 
-        }).getRaportData(user.Role, user.Sekolah, user.Kelas);
+        google.script.run.withSuccessHandler(r => { showLoad(false); if(r.status === 'success') renderRaportMenu(r.data); }).withFailureHandler(handleErr).getRaportData(user.Role, user.Sekolah, user.Kelas);
         return;
     }
     
-    // Default Call Dashboard / Siswa Ujian
     showLoad(true);
     google.script.run.withSuccessHandler(res => {
         showLoad(false);
-        if (res.status === 'success') { 
-            gData = res.data; 
-            renderContent(page); 
-            applyMathJax(); 
-        } else { 
-            Swal.fire('Error', res.msg, 'error'); 
-        }
-    }).getDashboardData(user.Role, user.ID, user.Kelas, user.Sekolah);
+        if (res.status === 'success') { gData = res.data; renderContent(page); applyMathJax(); } 
+        else { Swal.fire('Error', res.msg, 'error'); }
+    }).withFailureHandler(handleErr).getDashboardData(user.Role, user.ID, user.Kelas, user.Sekolah);
 }
 // Filter sebelumnya tidak case-insensitive. Diperbaiki menggunakan String().toLowerCase()
 function renderCetakIdentitas(users) {
@@ -2870,90 +2817,105 @@ function renderContent(page) {
     const isGuru = String(user.Role).trim().toLowerCase() === 'guru';
     const isSiswa = String(user.Role).trim().toLowerCase() === 'siswa';
 
-    if (page === 'admin-home' || page === 'siswa-home') {
-        if (isSiswa) {
-            h += `<div class="card mb-4 border-0 shadow-sm rounded-4 text-white" style="background: linear-gradient(135deg, #0f5132, #d4af37);">
-                    <div class="card-body p-4 d-flex align-items-center gap-4">
-                        <img src="${user.Foto}" class="rounded-circle shadow d-none d-md-block" width="80" height="80" style="object-fit:cover; border:3px solid #fff;">
-                        <div>
-                            <h3 class="fw-bold mb-1">Hai, ${user.Nama}</h3>
-                            <p class="mb-0 opacity-75"><i class="fas fa-school me-2"></i>${user.Sekolah} | Kelas ${user.Kelas}</p>
-                        </div>
-                    </div>
-                  </div>`;
+    if (page === 'siswa-home') {
+        h += `<div class="card mb-4 border-0 shadow-sm rounded-4 text-white" style="background: linear-gradient(135deg, #0f5132, #d4af37);">
+                <div class="card-body p-4 d-flex align-items-center gap-4">
+                    <img src="${user.Foto}" class="rounded-circle shadow d-none d-md-block" width="80" height="80" style="object-fit:cover; border:3px solid #fff;">
+                    <div><h3 class="fw-bold mb-1">Hai, ${user.Nama}</h3><p class="mb-0 opacity-75"><i class="fas fa-school me-2"></i>${user.Sekolah} | Kelas ${user.Kelas}</p></div>
+                </div>
+              </div>`;
+        
+        // Render Pengumuman di Dashboard Siswa
+        if(gData.notifications && gData.notifications.length > 0) {
+            h += `<div class="card border-0 shadow-sm rounded-4"><div class="card-body p-4"><h5 class="fw-bold text-danger mb-4"><i class="fas fa-bullhorn me-2"></i>Pengumuman Terkini</h5><div class="list-group list-group-flush">`;
             
-            // Menampilkan Histori Pengumuman untuk Siswa
-            if(gData.notifications && gData.notifications.length > 0) {
-                h += `<div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-body p-4"><h5 class="fw-bold text-danger mb-3"><i class="fas fa-bullhorn me-2"></i>Pengumuman dari Sekolah</h5><ul class="list-group list-group-flush">`;
-                gData.notifications.forEach(n => {
-                    h += `<li class="list-group-item px-0 py-2 border-bottom-dashed"><div class="d-flex w-100 justify-content-between"><span class="fw-medium text-dark">${n.Pesan || n.pesan}</span><small class="text-muted"><i class="fas fa-clock me-1"></i>${n.Tanggal || n.tanggal}</small></div></li>`;
-                });
-                h += `</ul></div></div>`;
-            }
-                  
-            h += `<h5 class="fw-bold mb-4 text-primary mt-4"><i class="fas fa-layer-group me-2"></i>Ruang Belajar Anda</h5><div class="row g-4 mb-5">`;
-                        
-            let mapels = {};
-            (gData.materials || []).forEach(m => {
-                let mp = m.Mapel || m.mapel || 'Lainnya';
-                if(!mapels[mp]) mapels[mp] = { mat: [], exm: [] };
-                mapels[mp].mat.push(m);
-            });
-            (gData.availableExams || []).forEach(e => {
-                let mp = e.Mapel || e.mapel || 'Lainnya';
-                if(!mapels[mp]) mapels[mp] = { mat: [], exm: [] };
-                mapels[mp].exm.push(e);
-            });
+            let readNotifs = JSON.parse(localStorage.getItem('read_notifs') || "[]");
 
-            if(Object.keys(mapels).length === 0) { h += '<div class="col-12"><div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Belum ada kelas / mapel yang tersedia.</div></div>'; } 
-            else {
-                for (let mapelName in mapels) {
-                    let totalMat = mapels[mapelName].mat.length;
-                    let totalExm = mapels[mapelName].exm.length;
-                    let safeMapel = mapelName.replace(/'/g, "\\'"); 
-                    h += `<div class="col-md-6 col-lg-4">
-                            <div class="card h-100 shadow-sm border-0 rounded-4 transition-hover" style="cursor:pointer;" onclick="openMapelFolder('${safeMapel}')">
-                                <div class="card-body p-4 text-center">
-                                    <div class="display-4 text-success mb-3"><i class="fas fa-folder-open"></i></div>
-                                    <h5 class="fw-bold text-dark mb-3 text-uppercase">${mapelName}</h5>
-                                    <div class="d-flex justify-content-center gap-2">
-                                        <span class="badge bg-light text-primary border"><i class="fas fa-book me-1"></i> ${totalMat} Materi</span>
-                                        <span class="badge bg-light text-danger border"><i class="fas fa-pencil-alt me-1"></i> ${totalExm} Ujian</span>
-                                    </div>
-                                </div>
-                            </div>
-                          </div>`;
-                }
-            }
-            h += '</div>';
-        } else {
-            // Tampilan Khusus Admin / Guru
-            h += `<div class="row g-4 mb-4">
-                    <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #0f5132, #15803d); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats?.totalSiswa || 0}</h1><p class="m-0 fs-5">Total Siswa Anda</p></div><i class="fas fa-users fa-4x opacity-50"></i></div></div></div>
-                    <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #d4af37, #b48500); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats?.totalUjian || 0}</h1><p class="m-0 fs-5">Bank Soal Anda</p></div><i class="fas fa-folder-open fa-4x opacity-50"></i></div></div></div>
-                 </div>`;
-                 
-            // Form Input Pengumuman untuk Admin/Guru
-            h += `<div class="card mb-4 border-0 shadow-sm rounded-4">
-                    <div class="card-body p-4">
-                        <h5 class="fw-bold text-danger mb-3"><i class="fas fa-bullhorn me-2"></i>Buat Pengumuman untuk Siswa</h5>
-                        <div class="input-group">
-                            <input type="text" id="in-notif" class="form-control bg-light border-0" placeholder="Ketik pengumuman di sini..." style="border-radius: 10px 0 0 10px;">
-                            <button class="btn btn-danger fw-bold px-4" onclick="kirimNotif()" style="border-radius: 0 10px 10px 0;"><i class="fas fa-paper-plane me-2"></i> Kirim Pengumuman</button>
+            gData.notifications.forEach(n => {
+                let notifId = n.NotifID || n.notifid;
+                let parts = (n.Pesan || n.pesan).split('|||LAMPIRAN|||');
+                let textPesan = parts[0];
+                let lampiranData = parts.length > 1 ? parts[1] : '';
+                let isUnread = !readNotifs.includes(notifId);
+                
+                let unreadBadge = isUnread ? `<span class="badge bg-danger rounded-circle p-2 ms-2 pulse-anim" title="Baru"> </span>` : '';
+                let safeText = encodeURIComponent(textPesan);
+                
+                h += `<button class="list-group-item list-group-item-action px-3 py-3 border-bottom rounded-3 mb-2 shadow-sm" onclick="bukaNotifSiswa('${notifId}', '${safeText}', '${lampiranData}')" style="background-color: ${isUnread ? '#fff5f5' : '#fff'}; border-left: 4px solid ${isUnread ? '#dc3545' : '#e2e8f0'} !important;">
+                        <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                            <div><span class="fw-bold text-dark fs-6">${textPesan.substring(0, 60)}${textPesan.length > 60 ? '...' : ''}</span>${unreadBadge}</div>
+                            <small class="text-muted"><i class="fas fa-clock me-1"></i>${n.Tanggal || n.tanggal}</small>
                         </div>
-                    </div>
-                  </div>`;
-                  
-            if(gData.notifications && gData.notifications.length > 0) {
-                h += `<div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-body p-4"><h6 class="fw-bold text-secondary mb-3">Pengumuman Terkirim:</h6><ul class="list-group list-group-flush">`;
-                gData.notifications.forEach(n => {
-                    h += `<li class="list-group-item px-0 py-2 border-bottom-dashed"><div class="d-flex w-100 justify-content-between"><span class="fw-medium text-dark">${n.Pesan || n.pesan}</span><small class="text-muted"><i class="fas fa-clock me-1"></i>${n.Tanggal || n.tanggal}</small></div></li>`;
-                });
-                h += `</ul></div></div>`;
-            }
+                        ${lampiranData ? `<small class="text-primary fw-bold"><i class="fas fa-paperclip me-1"></i> Ada Lampiran File</small>` : '<small class="text-muted">Klik untuk membaca</small>'}
+                      </button>`;
+            });
+            h += `</div></div></div>`;
+        } else {
+            h += `<div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Belum ada pengumuman baru dari Guru/Sekolah.</div>`;
         }
     }
+    else if (page === 'admin-home') {
+        h += `<div class="row g-4 mb-4">
+                <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #0f5132, #15803d); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats?.totalSiswa || 0}</h1><p class="m-0 fs-5">Total Siswa Anda</p></div><i class="fas fa-users fa-4x opacity-50"></i></div></div></div>
+                <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #d4af37, #b48500); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats?.totalUjian || 0}</h1><p class="m-0 fs-5">Bank Soal Anda</p></div><i class="fas fa-folder-open fa-4x opacity-50"></i></div></div></div>
+             </div>`;
+             
+        h += `<div class="alert alert-info shadow-sm rounded-4 border-0 mb-4"><i class="fas fa-info-circle me-2"></i>Untuk memposting pengumuman baru ke siswa, silakan masuk ke menu <b>Pengumuman</b> di sebelah kiri.</div>`;
+    }
+    
+    // MENU BARU: ADMIN PENGUMUMAN
+    else if (page === 'admin-pengumuman') {
+        h += `<div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-bullhorn me-2"></i>Pusat Pengumuman Sekolah</h5></div>`;
+        h += `<div class="row g-4">
+                <div class="col-md-5">
+                    <div class="card shadow-sm border-0 rounded-4">
+                        <div class="card-body p-4">
+                            <h6 class="fw-bold text-dark mb-3">Buat Pengumuman Baru</h6>
+                            <textarea id="in-notif-teks" class="form-control mb-3 rounded-3 bg-light border-secondary" rows="4" placeholder="Ketik isi pesan/informasi di sini..."></textarea>
+                            <label class="small fw-bold text-muted mb-2">Lampirkan Foto / PDF (Opsional)</label>
+                            <input type="file" id="in-notif-file" class="form-control mb-4 rounded-3 border-secondary" accept="image/*,.pdf" onchange="encodeNotifFileAsURL(this)">
+                            <input type="hidden" id="in-notif-b64">
+                            <button class="btn btn-primary w-100 fw-bold rounded-pill shadow-sm py-2" onclick="kirimNotifBaru()"><i class="fas fa-paper-plane me-2"></i>Sebarkan Pengumuman</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="card shadow-sm border-0 rounded-4 h-100">
+                        <div class="card-body p-4">
+                            <h6 class="fw-bold text-dark mb-3">Riwayat Pengumuman Anda</h6>
+                            <ul class="list-group list-group-flush">`;
+        if (gData.notifications && gData.notifications.length > 0) {
+            gData.notifications.forEach(n => {
+                let parts = (n.Pesan || n.pesan).split('|||LAMPIRAN|||');
+                let textPesan = parts[0];
+                let hasLampiran = parts.length > 1 ? `<span class="badge bg-info ms-2"><i class="fas fa-paperclip"></i> Lampiran</span>` : '';
+                h += `<li class="list-group-item px-0 py-3 border-bottom"><div class="d-flex justify-content-between"><div class="fw-medium text-dark">${textPesan} ${hasLampiran}</div><small class="text-muted"><i class="fas fa-clock me-1"></i>${n.Tanggal || n.tanggal}</small></div></li>`;
+            });
+        } else {
+            h += `<li class="list-group-item px-0 text-muted">Belum ada pengumuman.</li>`;
+        }
+        h += `              </ul></div></div></div></div>`;
+    }
 
+    else if (page === 'siswa-materi') {
+        h += `<div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-folder-open me-2"></i>Semua Ruang Belajar Anda</h5></div><div class="row g-4 mb-5">`;
+        let mapels = {};
+        (gData.materials || []).forEach(m => { let mp = m.Mapel || m.mapel || 'Lainnya'; if(!mapels[mp]) mapels[mp] = { mat: [], exm: [] }; mapels[mp].mat.push(m); });
+        (gData.availableExams || []).forEach(e => { let mp = e.Mapel || e.mapel || 'Lainnya'; if(!mapels[mp]) mapels[mp] = { mat: [], exm: [] }; mapels[mp].exm.push(e); });
+
+        if(Object.keys(mapels).length === 0) { h += '<div class="col-12"><div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Belum ada kelas / mapel yang tersedia.</div></div>'; } 
+        else {
+            for (let mapelName in mapels) {
+                let totalMat = mapels[mapelName].mat.length;
+                let totalExm = mapels[mapelName].exm.length;
+                let safeMapel = mapelName.replace(/'/g, "\\'"); 
+                h += `<div class="col-md-6 col-lg-4"><div class="card h-100 shadow-sm border-0 rounded-4 transition-hover" style="cursor:pointer;" onclick="openMapelFolder('${safeMapel}')"><div class="card-body p-4 text-center"><div class="display-4 text-success mb-3"><i class="fas fa-folder-open"></i></div><h5 class="fw-bold text-dark mb-3 text-uppercase">${mapelName}</h5><div class="d-flex justify-content-center gap-2"><span class="badge bg-light text-primary border"><i class="fas fa-book me-1"></i> ${totalMat} Materi</span><span class="badge bg-light text-danger border"><i class="fas fa-pencil-alt me-1"></i> ${totalExm} Ujian</span></div></div></div></div>`;
+            }
+        }
+        h += '</div>';
+    }
+    
+    // SISA KODE RENDER SEPERTI SEBELUMNYA
     else if (page === 'admin-materi') {
         h += `<div class="d-flex justify-content-between mb-4 flex-wrap gap-2"><h5 class="fw-bold text-primary"><i class="fas fa-book me-2"></i>Modul & Materi Belajar</h5><button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" onclick="$('#modalMateri').modal('show'); $('#frm-materi')[0].reset(); $('#mat-id').val('');"><i class="fas fa-plus me-2"></i> Tambah Materi</button></div><div class="row g-4">`;
         if(!gData.materials || gData.materials.length === 0) h += `<div class="col-12"><div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Belum ada materi diunggah.</div></div>`;
@@ -2978,9 +2940,7 @@ function renderContent(page) {
         if(!gData.exams || gData.exams.length === 0) h += `<div class="col-12"><div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Belum ada ujian yang Anda buat.</div></div>`;
         (gData.exams||[]).forEach(e => {
             let safeE = {
-                ExamID: e.ExamID || e.examid, Judul: e.Judul || e.judul, Mapel: e.Mapel || e.mapel, TargetKelas: e.TargetKelas || e.targetkelas,
-                Durasi: e.Durasi || e.durasi, Token: e.Token || e.token, StartDate: e.StartDate || e.startdate, EndDate: e.EndDate || e.enddate, Limit: e.LimitTries || e.limittries,
-                ShowStats: e.ShowStats || e.showstats, RandomQ: e.RandomQ || e.randomq, AllowDownloadQ: e.AllowDownloadQ || e.allowdownloadq, AllowDownloadR: e.AllowDownloadR || e.allowdownloadr
+                ExamID: e.ExamID || e.examid, Judul: e.Judul || e.judul, Mapel: e.Mapel || e.mapel, TargetKelas: e.TargetKelas || e.targetkelas, Durasi: e.Durasi || e.durasi, Token: e.Token || e.token, StartDate: e.StartDate || e.startdate, EndDate: e.EndDate || e.enddate, Limit: e.LimitTries || e.limittries, ShowStats: e.ShowStats || e.showstats, RandomQ: e.RandomQ || e.randomq, AllowDownloadQ: e.AllowDownloadQ || e.allowdownloadq, AllowDownloadR: e.AllowDownloadR || e.allowdownloadr
             };
             let actionButtons = `<button class="btn btn-sm btn-outline-dark flex-fill rounded-pill fw-bold" onclick="openExamModal('${encodeURIComponent(JSON.stringify(safeE))}')"><i class="fas fa-cog"></i> Edit</button> <button class="btn btn-sm btn-outline-primary flex-fill rounded-pill fw-bold" onclick="manageQ('${safeE.ExamID}')"><i class="fas fa-list"></i> Buat Soal</button> <button class="btn btn-sm btn-danger rounded-circle px-2" onclick="delExam('${safeE.ExamID}')"><i class="fas fa-trash"></i></button>`;
             h += `<div class="col-md-6 col-xl-4 ujian-card"><div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden"><div class="card-body p-4"><span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm mb-3">${safeE.Mapel}</span><h5 class="fw-bold text-dark mb-1">${safeE.Judul}</h5><p class="small text-muted mb-4"><i class="fas fa-clock me-1"></i> ${safeE.Durasi} Menit | Kls: ${safeE.TargetKelas}</p><div class="d-flex gap-2 mt-auto">${actionButtons}</div></div></div></div>`;
@@ -2995,44 +2955,79 @@ function renderContent(page) {
         } else {
             let historySorted = [...gData.history].sort((a,b) => new Date(b.WaktuSubmit) - new Date(a.WaktuSubmit));
             let grouped = {};
-            historySorted.forEach(item => {
-                let mapel = item.Mapel || 'Mata Pelajaran Umum';
-                if(!grouped[mapel]) grouped[mapel] = [];
-                grouped[mapel].push(item);
-            });
+            historySorted.forEach(item => { let mapel = item.Mapel || 'Mata Pelajaran Umum'; if(!grouped[mapel]) grouped[mapel] = []; grouped[mapel].push(item); });
             h += `<div class="accordion shadow-sm rounded-4" id="accHistory">`;
             let idx = 0;
             for(let mapel in grouped) {
-                h += `
-                <div class="accordion-item border-0 border-bottom mb-2">
-                    <h2 class="accordion-header" id="heading${idx}">
-                        <button class="accordion-button ${idx===0?'':'collapsed'} fw-bold text-dark bg-light rounded" type="button" data-bs-toggle="collapse" data-bs-target="#col${idx}">
-                            <i class="fas fa-folder-open text-primary me-2"></i> ${mapel} <span class="badge bg-danger ms-2">${grouped[mapel].length} Riwayat</span>
-                        </button>
-                    </h2>
-                    <div id="col${idx}" class="accordion-collapse collapse ${idx===0?'show':''}" data-bs-parent="#accHistory">
-                        <div class="accordion-body p-0">
-                            <ul class="list-group list-group-flush">
-                `;
+                h += `<div class="accordion-item border-0 border-bottom mb-2"><h2 class="accordion-header" id="heading${idx}"><button class="accordion-button ${idx===0?'':'collapsed'} fw-bold text-dark bg-light rounded" type="button" data-bs-toggle="collapse" data-bs-target="#col${idx}"><i class="fas fa-folder-open text-primary me-2"></i> ${mapel} <span class="badge bg-danger ms-2">${grouped[mapel].length} Riwayat</span></button></h2><div id="col${idx}" class="accordion-collapse collapse ${idx===0?'show':''}" data-bs-parent="#accHistory"><div class="accordion-body p-0"><ul class="list-group list-group-flush">`;
                 grouped[mapel].forEach(r => {
                     let score = r.ShowStats === 'Yes' || r.ShowStats === 'Aktif' ? `<span class="badge bg-success rounded-pill px-3 fs-6">${r.Nilai}</span>` : `<span class="badge bg-secondary rounded-pill px-3 py-2"><i class="fas fa-lock me-1"></i> Menunggu Guru</span>`;
-                    h += `<li class="list-group-item d-flex justify-content-between align-items-center p-3">
-                            <div><h6 class="fw-bold mb-1">${r.Judul}</h6><small class="text-muted"><i class="fas fa-calendar-alt me-1"></i>Dikirim: ${r.WaktuSubmit}</small></div>
-                            <div>${score}</div>
-                          </li>`;
+                    h += `<li class="list-group-item d-flex justify-content-between align-items-center p-3"><div><h6 class="fw-bold mb-1">${r.Judul}</h6><small class="text-muted"><i class="fas fa-calendar-alt me-1"></i>Dikirim: ${r.WaktuSubmit}</small></div><div>${score}</div></li>`;
                 });
-                h += `      </ul></div></div></div>`;
+                h += `</ul></div></div></div>`;
                 idx++;
             }
             h += `</div>`;
         }
     }
     
-    else {
-        h += `<div class="alert alert-warning text-center py-4 rounded-4">Memuat Halaman...</div>`;
+    area.html(h);
+}
+
+// Fungsi Bantuan untuk Notifikasi Base64 (Lampiran)
+function encodeNotifFileAsURL(element) {
+    let file = element.files[0]; 
+    if(!file) { $('#in-notif-b64').val(''); return; }
+    if(file.size > 2 * 1024 * 1024) { // Limit 2MB agar tidak berat
+        Swal.fire('Terlalu Besar', 'Maksimal ukuran file lampiran adalah 2MB', 'warning');
+        element.value = ''; return;
+    }
+    let reader = new FileReader(); 
+    reader.onloadend = function() { $('#in-notif-b64').val(reader.result); }; 
+    reader.readAsDataURL(file); 
+}
+
+function kirimNotifBaru() {
+    const pesan = $('#in-notif-teks').val(); 
+    const b64 = $('#in-notif-b64').val();
+    if(!pesan) return Swal.fire('Kosong', 'Isi pesan pengumuman tidak boleh kosong.', 'warning');
+    showLoad(true);
+    google.script.run.withSuccessHandler(()=>{
+        Swal.fire('Sukses', 'Pengumuman berhasil disebarkan!', 'success');
+        loadPage('admin-pengumuman');
+    }).adminSaveNotif(pesan, user.ID, b64);
+}
+
+function bukaNotifSiswa(id, safeText, lampiranBase64) {
+    // Tandai sudah dibaca di LocalStorage
+    let readNotifs = JSON.parse(localStorage.getItem('read_notifs') || "[]");
+    if(!readNotifs.includes(id)) {
+        readNotifs.push(id);
+        localStorage.setItem('read_notifs', JSON.stringify(readNotifs));
+        appRefresh(); // Segarkan layar agar denyut notifikasi hilang
     }
 
-    area.html(h);
+    let text = decodeURIComponent(safeText);
+    let htmlContent = `<div class="text-start mb-4" style="font-size: 15px; line-height: 1.6;">${text.replace(/\n/g, '<br>')}</div>`;
+    
+    if(lampiranBase64) {
+        if(lampiranBase64.startsWith('data:image')) {
+            htmlContent += `<img src="${lampiranBase64}" style="width: 100%; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px;">`;
+        } else if(lampiranBase64.startsWith('data:application/pdf')) {
+            htmlContent += `<iframe src="${lampiranBase64}" width="100%" height="400px" style="border: none; border-radius: 8px; margin-top: 10px;"></iframe>`;
+        } else {
+            // Jaga-jaga jika format file asing
+            htmlContent += `<div class="alert alert-info small mt-2">Lampiran tersedia. Buka di tab baru untuk mengunduh. <a href="${lampiranBase64}" download="lampiran_sekolah">Download</a></div>`;
+        }
+    }
+
+    Swal.fire({
+        title: '<i class="fas fa-bullhorn text-danger me-2"></i> Detail Pengumuman',
+        html: htmlContent,
+        width: '650px',
+        confirmButtonText: 'Tutup Pesan',
+        confirmButtonColor: '#0f5132'
+    });
 }
 
 // ===============================================
@@ -3261,87 +3256,96 @@ function printRaportSiswa() {
             let avg = Math.round(mapelAgg[m].total / mapelAgg[m].count);
             totalAll += avg; mCount++;
             let predikat = avg >= 90 ? 'A' : (avg >= 80 ? 'B' : (avg >= 70 ? 'C' : 'D'));
-            tableRows += `<tr><td style="text-align:center; padding:8px;">${i++}</td><td style="padding:8px;">${m}</td><td style="text-align:center; padding:8px; font-weight:bold; font-size:15px;">${avg}</td><td style="text-align:center; padding:8px; font-weight:bold;">${predikat}</td></tr>`;
+            tableRows += `<tr><td style="text-align:center; padding:8px; border-bottom: 1px solid #000;">${i++}</td><td style="padding:8px; border-bottom: 1px solid #000;">${m}</td><td style="text-align:center; padding:8px; font-weight:bold; font-size:15px; border-bottom: 1px solid #000;">${avg}</td><td style="text-align:center; padding:8px; font-weight:bold; border-bottom: 1px solid #000;">${predikat}</td></tr>`;
         }
     }
     
     let rataRata = mCount > 0 ? (totalAll / mCount).toFixed(2) : 0;
     let sNama = siswa.Nama||siswa.nama; let sKelas = siswa.Kelas||siswa.kelas; let sSekolah = siswa.Sekolah||siswa.sekolah; let sNis = siswa.Username||siswa.username;
     
-    // Perbaikan CSS agar tabel tidak terpotong (page-break-inside) 
-    // dan memaksa Kop tampil rapi
     let html = `
     <style>
         .kop { display: none !important; }
-        .print-container { padding: 20px; font-family: Arial, sans-serif; }
-        table { page-break-inside: avoid; } 
-        tr { page-break-inside: avoid; page-break-after: auto; }
-        .ttd-box { margin-top: 60px; page-break-inside: avoid; width: 100%; text-align: center; }
+        .print-container { font-family: Arial, sans-serif; font-size: 13px; color: #000; width: 100%; }
+        /* Memaksa row tabel agar tidak terpotong (terbuka di tengah halaman) */
+        table { border-collapse: collapse; width: 100%; }
+        tr { page-break-inside: avoid; }
+        .page-header-repeat { display: table-header-group; }
     </style>
     
-    <div class="print-container">
-        <!-- KOP SEKOLAH -->
-        <div style="display: flex; align-items: center; border-bottom: 4px solid #064e3b; padding-bottom: 15px; margin-bottom: 25px;">
-            <img src="${user.LogoUrl || 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'}" style="width: 90px; height: 90px; margin-right: 20px;">
-            <div style="flex-grow: 1; text-align: center;">
-                <h2 style="margin:0; font-size: 24px; color:#064e3b; letter-spacing: 1px; font-weight: bold;">LAPORAN HASIL BELAJAR PESERTA DIDIK</h2>
-                <h3 style="margin:5px 0; font-size: 18px; color:#1e293b;">${sSekolah}</h3>
-                <p style="margin: 0; font-size: 12px; color: #64748b;">Aplikasi CBT & LMS Terpadu KKGMI Kota Surabaya 10</p>
-            </div>
-        </div>
+    <table class="print-container">
+        <!-- THEAD MUNCUL BERULANG DI SETIAP HALAMAN BARU PDF -->
+        <thead class="page-header-repeat">
+            <tr>
+                <td style="padding-bottom: 20px;">
+                    <div style="display: flex; align-items: center; border-bottom: 4px solid #064e3b; padding-bottom: 15px; margin-bottom: 25px;">
+                        <img src="${user.LogoUrl || 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'}" style="width: 90px; height: 90px; margin-right: 20px;">
+                        <div style="flex-grow: 1; text-align: center;">
+                            <h2 style="margin:0; font-size: 24px; color:#064e3b; letter-spacing: 1px; font-weight: bold;">LAPORAN HASIL BELAJAR PESERTA DIDIK</h2>
+                            <h3 style="margin:5px 0; font-size: 18px; color:#1e293b;">${sSekolah}</h3>
+                            <p style="margin: 0; font-size: 12px; color: #64748b;">Aplikasi CBT & LMS Terpadu KKGMI Kota Surabaya 10</p>
+                        </div>
+                    </div>
 
-        <!-- IDENTITAS SISWA -->
-        <table style="width:100%; margin-bottom:25px; font-size:14px; border: none;">
-            <tr><td width="20%" style="padding:4px;"><strong>Nama Peserta Didik</strong></td><td width="2%">:</td><td width="48%"><strong>${sNama}</strong></td><td width="15%"><strong>Kelas</strong></td><td width="2%">:</td><td width="13%"><strong>${sKelas}</strong></td></tr>
-            <tr><td style="padding:4px;"><strong>Nomor Induk / Username</strong></td><td>:</td><td>${sNis}</td><td><strong>Semester</strong></td><td>:</td><td>Ganjil</td></tr>
-            <tr><td style="padding:4px;"><strong>Nama Sekolah</strong></td><td>:</td><td>${sSekolah}</td><td><strong>Tahun Ajaran</strong></td><td>:</td><td>2026/2027</td></tr>
-        </table>
-        
-        <!-- NILAI AKADEMIK -->
-        <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">A. Capaian Akademik</h4>
-        <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom: 20px;" border="1">
-            <thead style="background-color:#064e3b; color: white;">
-                <tr><th width="5%" style="padding:10px;">No</th><th width="65%" style="padding:10px;">Mata Pelajaran (Rata-rata Evaluasi)</th><th width="15%" style="padding:10px;">Nilai Akhir</th><th width="15%" style="padding:10px;">Predikat</th></tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-            <tfoot>
-                <tr style="background-color:#f1f5f9;"><td colspan="2" style="text-align:right; padding:10px; font-weight:bold;">RATA - RATA NILAI</td><td style="text-align:center; padding:10px; font-weight:bold; color:#0f5132; font-size:16px;">${rataRata}</td><td style="background-color:#fff;"></td></tr>
-            </tfoot>
-        </table>
+                    <table style="width:100%; margin-bottom:25px; font-size:14px; border: none;">
+                        <tr><td width="20%" style="padding:4px;"><strong>Nama Peserta Didik</strong></td><td width="2%">:</td><td width="48%"><strong>${sNama}</strong></td><td width="15%"><strong>Kelas</strong></td><td width="2%">:</td><td width="13%"><strong>${sKelas}</strong></td></tr>
+                        <tr><td style="padding:4px;"><strong>Nomor Induk / Username</strong></td><td>:</td><td>${sNis}</td><td><strong>Semester</strong></td><td>:</td><td>Ganjil</td></tr>
+                        <tr><td style="padding:4px;"><strong>Nama Sekolah</strong></td><td>:</td><td>${sSekolah}</td><td><strong>Tahun Ajaran</strong></td><td>:</td><td>2026/2027</td></tr>
+                    </table>
+                </td>
+            </tr>
+        </thead>
 
-        <!-- ABSENSI & CATATAN -->
-        <div style="page-break-inside: avoid;">
-            <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">B. Ketidakhadiran</h4>
-            <table style="width:40%; border-collapse:collapse; font-size:13px; margin-bottom: 20px;" border="1">
-                <tr><td style="padding:6px 10px;">Sakit</td><td style="padding:6px 10px; text-align:center;">${tSakit} Hari</td></tr>
-                <tr><td style="padding:6px 10px;">Izin</td><td style="padding:6px 10px; text-align:center;">${tIzin} Hari</td></tr>
-                <tr><td style="padding:6px 10px;">Tanpa Keterangan</td><td style="padding:6px 10px; text-align:center;">${tAlpa} Hari</td></tr>
-            </table>
+        <!-- TBODY MENYIMPAN KONTEN PANJANG -->
+        <tbody>
+            <tr>
+                <td>
+                    <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">A. Capaian Akademik</h4>
+                    <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom: 30px; border: 1px solid #000;">
+                        <thead style="background-color:#064e3b; color: white;">
+                            <tr><th width="5%" style="padding:10px; border-bottom: 1px solid #000;">No</th><th width="65%" style="padding:10px; border-bottom: 1px solid #000;">Mata Pelajaran (Rata-rata Evaluasi)</th><th width="15%" style="padding:10px; border-bottom: 1px solid #000;">Nilai Akhir</th><th width="15%" style="padding:10px; border-bottom: 1px solid #000;">Predikat</th></tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                        <tfoot>
+                            <tr style="background-color:#f1f5f9;"><td colspan="2" style="text-align:right; padding:10px; font-weight:bold; border-top: 1px solid #000;">RATA - RATA NILAI</td><td style="text-align:center; padding:10px; font-weight:bold; color:#0f5132; font-size:16px; border-top: 1px solid #000;">${rataRata}</td><td style="background-color:#fff; border-top: 1px solid #000;"></td></tr>
+                        </tfoot>
+                    </table>
 
-            <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">C. Catatan Wali Kelas</h4>
-            <div style="border: 1px solid #000; padding: 15px; height: 80px; margin-bottom: 20px;"></div>
+                    <div style="page-break-inside: avoid;">
+                        <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">B. Ketidakhadiran</h4>
+                        <table style="width:40%; border-collapse:collapse; font-size:13px; margin-bottom: 20px; border: 1px solid #000;">
+                            <tr><td style="padding:6px 10px; border-bottom: 1px solid #000;">Sakit</td><td style="padding:6px 10px; text-align:center; border-bottom: 1px solid #000;">${tSakit} Hari</td></tr>
+                            <tr><td style="padding:6px 10px; border-bottom: 1px solid #000;">Izin</td><td style="padding:6px 10px; text-align:center; border-bottom: 1px solid #000;">${tIzin} Hari</td></tr>
+                            <tr><td style="padding:6px 10px; border-bottom: 1px solid #000;">Tanpa Keterangan</td><td style="padding:6px 10px; text-align:center; border-bottom: 1px solid #000;">${tAlpa} Hari</td></tr>
+                        </table>
 
-            <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">D. Tanggapan Orang Tua / Wali</h4>
-            <div style="border: 1px solid #000; padding: 15px; height: 80px; margin-bottom: 20px;"></div>
-        </div>
+                        <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">C. Catatan Wali Kelas</h4>
+                        <div style="border: 1px solid #000; padding: 15px; height: 80px; margin-bottom: 20px;"></div>
 
-        <!-- TANDA TANGAN (Lebih Bawah & Ditengah) -->
-        <div class="ttd-box">
-            <table style="width:100%; text-align:center; font-size:14px; border: none;">
-                <tr>
-                    <td width="33%">Mengetahui,<br>Orang Tua / Wali</td>
-                    <td width="34%">Mengetahui,<br>Kepala Sekolah</td>
-                    <td width="33%">Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}<br>Wali Kelas</td>
-                </tr>
-                <tr><td height="100"></td><td></td><td></td></tr>
-                <tr>
-                    <td><strong>( ..................................... )</strong></td>
-                    <td><strong>${kepsek}</strong><br>NIP. ${nipKepsek}</td>
-                    <td><strong>${wali}</strong><br>NIP. ${nipWali}</td>
-                </tr>
-            </table>
-        </div>
-    </div>
+                        <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">D. Tanggapan Orang Tua / Wali</h4>
+                        <div style="border: 1px solid #000; padding: 15px; height: 80px; margin-bottom: 40px;"></div>
+                    </div>
+
+                    <!-- TANDA TANGAN -->
+                    <div style="page-break-inside: avoid; margin-top: 50px;">
+                        <table style="width:100%; text-align:center; font-size:14px; border: none;">
+                            <tr>
+                                <td width="33%">Mengetahui,<br>Orang Tua / Wali</td>
+                                <td width="34%">Mengetahui,<br>Kepala Sekolah</td>
+                                <td width="33%">Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}<br>Wali Kelas</td>
+                            </tr>
+                            <tr><td height="110"></td><td></td><td></td></tr>
+                            <tr>
+                                <td><strong>( ..................................... )</strong></td>
+                                <td><strong>${kepsek}</strong><br>NIP. ${nipKepsek}</td>
+                                <td><strong>${wali}</strong><br>NIP. ${nipWali}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
     `;
     
     downloadHTMLToPDF('Raport_' + sNama.replace(/\s+/g, '_'), html);
