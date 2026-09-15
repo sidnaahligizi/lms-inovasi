@@ -118,8 +118,8 @@
         <!-- MENU SISWA -->
         <ul class="list-unstyled components hidden" id="menu-siswa">
             <li><a onclick="loadPage('siswa-home')" class="nav-link active"><i class="fas fa-home me-3"></i>Dashboard Utama</a></li>
-            <li><a onclick="loadPage('siswa-materi')" class="nav-link"><i class="fas fa-book me-3"></i>Materi Belajar</a></li>
-            <li><a onclick="loadPage('siswa-ujian')" class="nav-link"><i class="fas fa-pencil-alt me-3"></i>Riwayat Ujian</a></li>
+            <li><a onclick="loadPage('siswa-materi')" class="nav-link"><i class="fas fa-book me-3"></i>Ruang Belajar</a></li>
+            <li><a onclick="loadPage('siswa-ujian')" class="nav-link"><i class="fas fa-history me-3"></i>Riwayat Hasil & Tugas</a></li>
         </ul>
 
         <!-- PROFIL BAWAH (Diubah agar tidak overlap) -->
@@ -2379,35 +2379,25 @@ function processSubmission(retryCount = 0) {
             else { v = $(this).find('textarea').val(); }
             if (v !== null && v !== undefined) ans.push({ qid: qid, answer: v });
         });
-    } catch(e) { console.error("Error collecting", e); }
+    } catch(e) {}
     
     google.script.run.withSuccessHandler((res) => {
         examSubmitting = false; btn.prop('disabled', false).html(originalText);
         if (res.status === 'success') {
             localStorage.removeItem('cbt_active_exam'); localStorage.removeItem(`ANS_${user.ID}_${activeExamId}`);
             
-            showLoad(true);
-            google.script.run.withSuccessHandler(surveyRes => {
-                showLoad(false);
-                if(surveyRes.status === 'success' && surveyRes.data) {
-                    $('body').removeClass('exam-mode'); $('#view-exam').addClass('hidden');
-                    $('#view-countdown').removeClass('hidden');
-                    window.activeSurveyData = surveyRes.data;
-                    startCountdown();
-                } else {
-                    $('body').removeClass('exam-mode'); try { document.exitFullscreen().catch(()=>{}) } catch (e) {};
-                    Swal.fire({
-                        title: 'Hebat, Selesai!',
-                        html: `<div class="mb-3 text-success" style="font-size: 5rem;"><i class="fas fa-check-circle"></i></div><h5 class="fw-bold">Ujian Telah Terkirim Aman ke Server</h5><p class="text-muted mt-2">Terima kasih. Anda boleh keluar dari aplikasi.</p>`,
-                        confirmButtonText: 'KEMBALI KE BERANDA', confirmButtonColor: '#0f5132', allowOutsideClick: false, allowEscapeKey: false
-                    }).then(() => { $('#view-exam').addClass('hidden'); $('#view-dashboard').removeClass('hidden'); loadPage('siswa-home'); });
-                }
-            }).checkActiveSurvey(activeExamId);
+            // PERBAIKAN: Langsung buang layar ujian dan kembalikan ke siswa-home tanpa survey
+            $('body').removeClass('exam-mode'); try { document.exitFullscreen().catch(()=>{}) } catch (e) {};
+            Swal.fire({
+                title: 'Hebat, Selesai!',
+                html: `<div class="mb-3 text-success" style="font-size: 5rem;"><i class="fas fa-check-circle"></i></div><h5 class="fw-bold">Ujian Telah Terkirim Aman ke Server</h5><p class="text-muted mt-2">Terima kasih. Anda akan kembali ke beranda.</p>`,
+                confirmButtonText: 'KEMBALI KE BERANDA', confirmButtonColor: '#0f5132', allowOutsideClick: false, allowEscapeKey: false
+            }).then(() => { $('#view-exam').addClass('hidden'); $('#view-dashboard').removeClass('hidden'); loadPage('siswa-home'); });
             
         } else { Swal.fire('Gagal', res.msg || 'Terjadi kesalahan sistem.', 'error'); }
     }).withFailureHandler((err) => {
         if (retryCount < 3) { setTimeout(() => processSubmission(retryCount + 1), 3000); } 
-        else { examSubmitting = false; btn.prop('disabled', false).html(originalText); Swal.fire('Koneksi Terputus', 'Gagal menghubungi server setelah beberapa percobaan.', 'error'); }
+        else { examSubmitting = false; btn.prop('disabled', false).html(originalText); Swal.fire('Koneksi Terputus', 'Gagal menghubungi server.', 'error'); }
     }).submitExam(user.ID, activeExamId, ans, violationCount);
 }
 
@@ -2654,11 +2644,22 @@ function loadPage(page) {
 
     if(page === 'admin-users') {
         showLoad(true);
+        // Menambahkan user.Kelas untuk filter data
         google.script.run.withSuccessHandler(r => { 
             showLoad(false); 
             if(r.status === 'success') renderUsers(r.data); 
             else Swal.fire('Error', r.msg, 'error'); 
-        }).getUserList(user.Role, user.ID, user.Sekolah);
+        }).getUserList(user.Role, user.ID, user.Sekolah, user.Kelas);
+        return;
+    }
+    
+    if(page === 'admin-cetak-identitas') {
+        showLoad(true);
+        // Menambahkan user.Kelas untuk filter data
+        google.script.run.withSuccessHandler(r => { 
+            showLoad(false); 
+            if(r.status === 'success') { renderCetakIdentitas(r.data); } 
+        }).getUserList(user.Role, user.ID, user.Sekolah, user.Kelas);
         return;
     }
     
@@ -2671,7 +2672,10 @@ function loadPage(page) {
         return;
     }
     
-    if(page === 'guru-monitoring') { renderMonitoring(); return; }
+    if(page === 'guru-monitoring') { 
+        renderMonitoring(); 
+        return; 
+    }
     
     if(page === 'admin-administrasi') {
         showLoad(true);
@@ -2685,10 +2689,11 @@ function loadPage(page) {
 
     if(page === 'admin-absen') {
         showLoad(true);
+        // Menambahkan user.Kelas untuk filter data
         google.script.run.withSuccessHandler(r => { 
             showLoad(false); 
             if(r.status === 'success') renderAbsenAdmin(r.data); 
-        }).getAbsenRekap(user.Role, user.Sekolah);
+        }).getAbsenRekap(user.Role, user.Sekolah, user.Kelas);
         return;
     }
 
@@ -2703,38 +2708,43 @@ function loadPage(page) {
 
     if(page === 'admin-raport') {
         showLoad(true);
+        // Menambahkan user.Kelas untuk filter data
         google.script.run.withSuccessHandler(r => { 
             showLoad(false); 
             if(r.status === 'success') renderRaportMenu(r.data); 
-        }).getRaportData(user.Role, user.Sekolah);
+        }).getRaportData(user.Role, user.Sekolah, user.Kelas);
         return;
     }
-    // Di dalam fungsi loadPage(page)
-if(page === 'admin-cetak-identitas') {
-    showLoad(true);
-    google.script.run.withSuccessHandler(r => { 
-        showLoad(false); 
-        if(r.status === 'success') { renderCetakIdentitas(r.data); } 
-    }).getUserList(user.Role, user.ID, user.Sekolah);
-    return;
-}
+    
+    // Default Call Dashboard / Siswa Ujian
     showLoad(true);
     google.script.run.withSuccessHandler(res => {
         showLoad(false);
-        if (res.status === 'success') { gData = res.data; renderContent(page); applyMathJax(); } 
-        else { Swal.fire('Error', res.msg, 'error'); }
+        if (res.status === 'success') { 
+            gData = res.data; 
+            renderContent(page); 
+            applyMathJax(); 
+        } else { 
+            Swal.fire('Error', res.msg, 'error'); 
+        }
     }).getDashboardData(user.Role, user.ID, user.Kelas, user.Sekolah);
 }
 
 // Filter sebelumnya tidak case-insensitive. Diperbaiki menggunakan String().toLowerCase()
 function renderCetakIdentitas(users) {
+    let namaGuruText = String(user.Role).trim().toLowerCase() === 'guru' ? user.Nama : '';
     let html = `<div class="d-flex justify-content-between mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-id-badge me-2"></i> Cetak Identitas Siswa</h5></div>
         <div class="row g-3 bg-white p-4 rounded-4 shadow-sm border mb-4">
-            <div class="col-md-6"><label class="small fw-bold">Pilih Siswa</label><select id="cetak-id-siswa" class="form-select">
+            <div class="col-md-12"><label class="small fw-bold">Pilih Siswa</label><select id="cetak-id-siswa" class="form-select">
                 <option value="">-- Pilih Siswa --</option>
                 ${users.filter(u => String(u.Role || u.role).toLowerCase() === 'siswa').map(u => `<option value="${encodeURIComponent(JSON.stringify(u))}">${u.Nama || u.nama} - Kls ${u.Kelas || u.kelas}</option>`).join('')}
             </select></div>
-            <div class="col-md-6"><label class="small fw-bold">Nama Kepala Sekolah</label><input type="text" id="cetak-kepsek" class="form-control" placeholder="Nama Kepala Sekolah..."></div>
+            
+            <div class="col-md-6"><label class="small fw-bold">Nama Kepala Sekolah</label><input type="text" id="cetak-kepsek" class="form-control" placeholder="Nama Lengkap Kepala Sekolah..."></div>
+            <div class="col-md-6"><label class="small fw-bold">NIP Kepala Sekolah</label><input type="text" id="cetak-nip-kepsek" class="form-control" placeholder="Kosongkan jika tidak ada..."></div>
+            <div class="col-md-6"><label class="small fw-bold">Nama Wali Kelas / Guru</label><input type="text" id="cetak-wali" class="form-control" placeholder="Nama Wali Kelas..." value="${namaGuruText}"></div>
+            <div class="col-md-6"><label class="small fw-bold">NIP Wali Kelas</label><input type="text" id="cetak-nip-wali" class="form-control" placeholder="Kosongkan jika tidak ada..."></div>
+            
             <div class="col-12 mt-3"><h6 class="fw-bold">Pilih Data yang Dicetak:</h6>
                 <div class="d-flex flex-wrap gap-3">
                     <label><input type="checkbox" class="form-check-input chk-cetak" value="NIS/NISN" checked> NIS/NISN</label>
@@ -2744,9 +2754,53 @@ function renderCetakIdentitas(users) {
                     <label><input type="checkbox" class="form-check-input chk-cetak" value="Foto" checked> Foto Siswa</label>
                 </div>
             </div>
-            <div class="col-12 mt-3"><button class="btn btn-primary px-4 shadow-sm rounded-pill" onclick="prosesCetakIdentitas()"><i class="fas fa-print me-2"></i>Cetak Identitas</button></div>
+            <div class="col-12 mt-3"><button class="btn btn-primary px-4 shadow-sm rounded-pill" onclick="prosesCetakIdentitas()"><i class="fas fa-print me-2"></i>Cetak Identitas PDF</button></div>
         </div>`;
     $('#content-area').html(html);
+}
+    
+function prosesCetakIdentitas() {
+    let val = $('#cetak-id-siswa').val();
+    if(!val) return Swal.fire('Peringatan', 'Pilih siswa terlebih dahulu.', 'warning');
+    let u = JSON.parse(decodeURIComponent(val));
+    
+    // Ambil variabel isian
+    let kepsek = $('#cetak-kepsek').val() || '...............................';
+    let nipKepsek = $('#cetak-nip-kepsek').val() || '-';
+    let wali = $('#cetak-wali').val() || '...............................';
+    let nipWali = $('#cetak-nip-wali').val() || '-';
+    
+    let checkedFields = $('.chk-cetak:checked').map(function(){ return $(this).val(); }).get();
+
+    let trs = `<tr><td width="30%" style="padding: 8px;">Nama Lengkap</td><td width="2%">:</td><td><strong>${u.Nama || '-'}</strong></td></tr>`;
+    if(checkedFields.includes('NIS/NISN')) trs += `<tr><td style="padding: 8px;">NIS / NISN</td><td>:</td><td>${u.NIS || '-'} / ${u.NISN || '-'}</td></tr>`;
+    if(checkedFields.includes('TTL')) trs += `<tr><td style="padding: 8px;">Tempat, Tgl Lahir</td><td>:</td><td>${u.TempatLahir || '-'}, ${u.TglLahir || '-'}</td></tr>`;
+    if(checkedFields.includes('Orang Tua')) trs += `<tr><td style="padding: 8px;">Nama Ayah / Ibu</td><td>:</td><td>${u.NamaAyah || '-'} / ${u.NamaIbu || '-'}</td></tr>`;
+    if(checkedFields.includes('Alamat')) trs += `<tr><td style="padding: 8px;">Alamat Lengkap</td><td>:</td><td>${u.Alamat || '-'} RT/RW ${u.RTRW || '-'}, ${u.DesaKelurahan || '-'}, Kec. ${u.Kecamatan || '-'}, Kab. ${u.KabupatenKota || '-'}</td></tr>`;
+    
+    let photoBlock = checkedFields.includes('Foto') ? `<img src="${u.Foto || 'https://via.placeholder.com/120'}" style="width:120px; height:160px; object-fit:cover; border: 3px solid #064e3b; margin-right: 20px;">` : '';
+
+    let html = `
+    <div style="border: 2px solid #000; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+        <h3 style="text-align:center; text-decoration: underline; color: #064e3b;">IDENTITAS PESERTA DIDIK</h3><br>
+        <div style="display:flex; align-items:flex-start; margin-top:20px;">
+            ${photoBlock}
+            <table style="width:100%; font-size:15px; border-collapse: collapse;">${trs}</table>
+        </div>
+    </div>
+    <table style="width:100%; text-align:center; font-size:14px; margin-top: 50px; page-break-inside: avoid;">
+        <tr>
+            <td width="50%">Mengetahui,<br>Kepala Sekolah</td>
+            <td width="50%">Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}<br>Wali Kelas</td>
+        </tr>
+        <tr><td height="80"></td><td></td></tr>
+        <tr>
+            <td><strong>${kepsek}</strong><br>NIP. ${nipKepsek}</td>
+            <td><strong>${wali}</strong><br>NIP. ${nipWali}</td>
+        </tr>
+    </table>
+    `;
+    downloadHTMLToPDF(`Identitas_${u.Nama.replace(/\s+/g,'_')}`, html);
 }
     
 function prosesCetakIdentitas() {
@@ -2822,9 +2876,18 @@ function renderContent(page) {
                         </div>
                     </div>
                   </div>`;
-                  
-            h += `<h5 class="fw-bold mb-4 text-primary"><i class="fas fa-layer-group me-2"></i>Ruang Belajar Anda</h5><div class="row g-4 mb-5">`;
             
+            // PERBAIKAN: Menampilkan Histori Pengumuman
+            if(gData.notifications && gData.notifications.length > 0) {
+                h += `<div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-body p-4"><h5 class="fw-bold text-danger mb-3"><i class="fas fa-bullhorn me-2"></i>Pengumuman / Pemberitahuan</h5><ul class="list-group list-group-flush">`;
+                gData.notifications.forEach(n => {
+                    h += `<li class="list-group-item px-0 py-2 border-bottom-dashed"><div class="d-flex w-100 justify-content-between"><span class="fw-medium text-dark">${n.Pesan || n.pesan}</span><small class="text-muted"><i class="fas fa-clock me-1"></i>${n.Tanggal || n.tanggal}</small></div></li>`;
+                });
+                h += `</ul></div></div>`;
+            }
+                  
+            h += `<h5 class="fw-bold mb-4 text-primary mt-4"><i class="fas fa-layer-group me-2"></i>Ruang Belajar Anda</h5><div class="row g-4 mb-5">`;
+                        
             let mapels = {};
             (gData.materials || []).forEach(m => {
                 let mp = m.Mapel || m.mapel || 'Lainnya';
@@ -2885,26 +2948,46 @@ function renderContent(page) {
         h += `</div>`;
     }
     
-    else if (page === 'admin-ujian') {
-        isSurveyMode = false;
-        h += `<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3"><h5 class="fw-bold text-primary mb-0"><i class="fas fa-folder-open me-2"></i>Daftar Bank Soal</h5><button class="btn btn-primary shadow-sm px-4 py-2 rounded-pill fw-bold" onclick="openExamModal()"><i class="fas fa-plus me-2"></i>Buat Evaluasi / Ujian Baru</button></div><div class="row g-4" id="admin-ujian-list">`;
-        if(!gData.exams || gData.exams.length === 0) h += `<div class="col-12"><div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Belum ada ujian yang Anda buat.</div></div>`;
-        (gData.exams||[]).forEach(e => {
-            // Standarisasi Variabel Case-Insensitive (PENTING untuk Fix Null/Undefined)
-            let safeE = {
-                ExamID: e.ExamID || e.examid, Judul: e.Judul || e.judul, Mapel: e.Mapel || e.mapel, TargetKelas: e.TargetKelas || e.targetkelas,
-                Durasi: e.Durasi || e.durasi, Token: e.Token || e.token, StartDate: e.StartDate || e.startdate, EndDate: e.EndDate || e.enddate, Limit: e.LimitTries || e.limittries,
-                ShowStats: e.ShowStats || e.showstats, RandomQ: e.RandomQ || e.randomq, AllowDownloadQ: e.AllowDownloadQ || e.allowdownloadq, AllowDownloadR: e.AllowDownloadR || e.allowdownloadr
-            };
-            let actionButtons = `<button class="btn btn-sm btn-outline-dark flex-fill rounded-pill fw-bold" onclick="openExamModal('${encodeURIComponent(JSON.stringify(safeE))}')"><i class="fas fa-cog"></i> Edit</button> <button class="btn btn-sm btn-outline-primary flex-fill rounded-pill fw-bold" onclick="manageQ('${safeE.ExamID}')"><i class="fas fa-list"></i> Buat Soal</button> <button class="btn btn-sm btn-danger rounded-circle px-2" onclick="delExam('${safeE.ExamID}')"><i class="fas fa-trash"></i></button>`;
-            h += `<div class="col-md-6 col-xl-4 ujian-card"><div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden"><div class="card-body p-4"><span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm mb-3">${safeE.Mapel}</span><h5 class="fw-bold text-dark mb-1">${safeE.Judul}</h5><p class="small text-muted mb-4"><i class="fas fa-clock me-1"></i> ${safeE.Durasi} Menit | Kls: ${safeE.TargetKelas}</p><div class="d-flex gap-2 mt-auto">${actionButtons}</div></div></div></div>`;
-        });
-        h += '</div>';
+    else if (page === 'siswa-ujian') {
+        h += `<div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-history me-2"></i>Riwayat Hasil & Tugas Anda</h5></div>`;
+        if(!gData.history || gData.history.length === 0) {
+            h += `<div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Anda belum menyelesaikan ujian/tugas apa pun.</div>`;
+        } else {
+            // Group by Mapel and Sort by Date Descending
+            let historySorted = [...gData.history].sort((a,b) => new Date(b.WaktuSubmit) - new Date(a.WaktuSubmit));
+            let grouped = {};
+            historySorted.forEach(item => {
+                let mapel = item.Mapel || 'Mata Pelajaran Umum';
+                if(!grouped[mapel]) grouped[mapel] = [];
+                grouped[mapel].push(item);
+            });
+            h += `<div class="accordion shadow-sm rounded-4" id="accHistory">`;
+            let idx = 0;
+            for(let mapel in grouped) {
+                h += `
+                <div class="accordion-item border-0 border-bottom mb-2">
+                    <h2 class="accordion-header" id="heading${idx}">
+                        <button class="accordion-button ${idx===0?'':'collapsed'} fw-bold text-dark bg-light rounded" type="button" data-bs-toggle="collapse" data-bs-target="#col${idx}">
+                            <i class="fas fa-folder-open text-primary me-2"></i> ${mapel} <span class="badge bg-danger ms-2">${grouped[mapel].length} Riwayat</span>
+                        </button>
+                    </h2>
+                    <div id="col${idx}" class="accordion-collapse collapse ${idx===0?'show':''}" data-bs-parent="#accHistory">
+                        <div class="accordion-body p-0">
+                            <ul class="list-group list-group-flush">
+                `;
+                grouped[mapel].forEach(r => {
+                    let score = r.ShowStats === 'Yes' || r.ShowStats === 'Aktif' ? `<span class="badge bg-success rounded-pill px-3 fs-6">${r.Nilai}</span>` : `<span class="badge bg-secondary rounded-pill px-3 py-2"><i class="fas fa-lock me-1"></i> Menunggu Guru</span>`;
+                    h += `<li class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div><h6 class="fw-bold mb-1">${r.Judul}</h6><small class="text-muted"><i class="fas fa-calendar-alt me-1"></i>Dikirim: ${r.WaktuSubmit}</small></div>
+                            <div>${score}</div>
+                          </li>`;
+                });
+                h += `      </ul></div></div></div>`;
+                idx++;
+            }
+            h += `</div>`;
+        }
     }
-    
-    else { h += `<div class="alert alert-warning text-center py-4 rounded-4">Memuat Halaman...</div>`; }
-    area.html(h);
-}
 
 // ===============================================
 // FUNGSI BARU: FOLDER MAPEL SISWA
