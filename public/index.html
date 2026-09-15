@@ -75,6 +75,9 @@
             .btn-nav-exam { width: 100%; margin-bottom: 10px; }
             #btn-nav-container { flex-direction: column; }
         }
+        
+        @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); } }
+        .pulse-anim { animation: pulse 2s infinite; }
 
     </style>
 </head>
@@ -91,9 +94,9 @@
         </div>
 
         <!-- MENU ADMIN -->
-        <!-- MENU ADMIN -->
         <ul class="list-unstyled components hidden" id="menu-admin">
             <li><a onclick="loadPage('admin-home')" class="nav-link active"><i class="fas fa-home me-3"></i>Dashboard</a></li>
+            <li><a onclick="loadPage('admin-pengumuman')" class="nav-link text-danger"><i class="fas fa-bullhorn me-3"></i>Pengumuman</a></li>
             <li><a onclick="loadPage('admin-users')" class="nav-link"><i class="fas fa-users me-3"></i>Data Peserta</a></li>
             <li><a onclick="loadPage('admin-cetak-identitas')" class="nav-link text-info"><i class="fas fa-id-badge me-3"></i>Cetak Identitas</a></li>
             <li><a onclick="loadPage('admin-materi')" class="nav-link"><i class="fas fa-book-open me-3"></i>Materi & Modul</a></li>
@@ -106,6 +109,7 @@
         <!-- MENU GURU -->
         <ul class="list-unstyled components hidden" id="menu-guru">
             <li><a onclick="loadPage('admin-home')" class="nav-link active"><i class="fas fa-home me-3"></i>Dashboard</a></li>
+            <li><a onclick="loadPage('admin-pengumuman')" class="nav-link text-danger"><i class="fas fa-bullhorn me-3"></i>Pengumuman</a></li>
             <li><a onclick="loadPage('admin-users')" class="nav-link"><i class="fas fa-users me-3"></i>Data Peserta</a></li>
             <li><a onclick="loadPage('admin-cetak-identitas')" class="nav-link text-info"><i class="fas fa-id-badge me-3"></i>Cetak Identitas</a></li>
             <li><a onclick="loadPage('admin-materi')" class="nav-link"><i class="fas fa-book-open me-3"></i>Materi & Modul</a></li>
@@ -2623,6 +2627,7 @@ function saveUser() {
         Swal.fire('Koneksi Terputus', 'Gagal menghubungi server.', 'error');
     }).adminManageUser('save', d);
 }
+
 function loadPage(page) {
     clearInterval(timerInt); 
     clearInterval(monitorInterval); 
