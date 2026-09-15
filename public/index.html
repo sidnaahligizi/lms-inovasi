@@ -1210,22 +1210,6 @@ function renderRecapRows(data) {
     XLSX.writeFile(wb, `Rekap_Nilai_${fSekolah}_${fUjian}.xlsx`);
 }
 
-
-// Logika Pencarian & Filter
-function applyFilterRecap() {
-    let nama = $('#filter-nama').val().toLowerCase();
-    let sekolah = $('#filter-sekolah').val();
-    let ujian = $('#filter-ujian').val();
-    
-    window.currentFilteredData = recapAllData.filter(r => {
-        let matchNama = r.NamaSiswa.toLowerCase().includes(nama);
-        let matchSekolah = sekolah === "" || r.SekolahSiswa === sekolah;
-        let matchUjian = ujian === "" || r.JudulUjian === ujian;
-        return matchNama && matchSekolah && matchUjian;
-    });
-    renderRecapRows(window.currentFilteredData);
-}
-
 // Logika Checkbox & Hapus Massal
 function toggleAllRecap(el) {
     $('.check-recap').prop('checked', el.checked);
@@ -1967,45 +1951,6 @@ return `
     </div>`;
 }
 
-// Menghindari Crash Modal saat di klik berulang kali
-function previewAllQ() {
-    let htmlContent = ''; 
-    currentQuestionsData.forEach(q => { htmlContent += `<div class="q-box" style="border-bottom:2px dashed #ccc; padding-bottom:15px; margin-bottom:15px;">${generateQHTML(q)}</div>`; });
-    if(!htmlContent) return Swal.fire('Kosong', 'Belum ada soal untuk dipreview.', 'info');
-    
-    $('#modalPreviewQ').remove(); // Hapus sisa modal jika ada
-    $('body').append(`<div class="modal fade" id="modalPreviewQ" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content"><div class="modal-header bg-info text-white"><h5 class="modal-title fw-bold"><i class="fas fa-desktop me-2"></i> Preview Seluruh Soal</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body bg-light" id="preview-q-body" style="padding:30px;">${htmlContent}</div></div></div></div>`);
-    
-    const previewModal = new bootstrap.Modal(document.getElementById('modalPreviewQ'));
-    previewModal.show();
-    applyMathJax();
-}
-
-function generateQHTML(q) {
-    let inp = '';
-    // Fix untuk mendeteksi pertanyaan huruf kecil dari Turso
-    let cleanedQuestion = decodeHTML(q.Pertanyaan || q.pertanyaan || '');
-    let qTipe = q.Tipe || q.tipe || 'PGS';
-    let qId = q.QID || q.qid || '';
-    let qNomor = q.Nomor || q.nomor || '';
-
-    if(qTipe==='PGKK') {
-        const opts = JSON.parse(q.Options||q.options||"[]");
-        inp = `<table style="width:100%; border-collapse: collapse; margin-top:15px; background:white;" border="1"><thead><tr style="background:#f8f9fa;"><th style="padding:10px; text-align:left;">PERNYATAAN</th><th width="15%" style="padding:10px; text-align:center;">BENAR</th><th width="15%" style="padding:10px; text-align:center;">SALAH</th></tr></thead><tbody>`;
-        opts.forEach((o,x)=> { inp+=`<tr><td style="padding:10px;">${o}</td><td style="padding:10px; text-align:center; vertical-align:middle;"><input type="radio" name="ans-${qId}-${x}" value="B" style="transform:scale(1.2);"></td><td style="padding:10px; text-align:center; vertical-align:middle;"><input type="radio" name="ans-${qId}-${x}" value="S" style="transform:scale(1.2);"></td></tr>`; });
-        inp += `</tbody></table>`;
-    } else if(qTipe==='Menjodohkan') {
-        const lItems = JSON.parse(q.Options||q.options||"[]"); let rItems = [];
-        try { rItems = [...JSON.parse(q.Key||q.key||"[]")].sort(() => Math.random() - 0.5); } catch(e){}
-        inp = `<div style="display:flex; justify-content:space-between; gap:20px; margin-top:15px;"><div style="flex:1; display:flex; flex-direction:column; gap:10px;">${lItems.map((t)=>`<div style="border:2px solid #e2e8f0; padding:10px; border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.1);">${t}</div>`).join('')}</div><div style="flex:1; display:flex; flex-direction:column; gap:10px;">${rItems.map((t)=>`<div style="border:2px solid #e2e8f0; padding:10px; border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.1);">${t}</div>`).join('')}</div></div>`;
-    } else if(qTipe.includes('PG')) {
-        const opts = JSON.parse(q.Options||q.options||"[]");
-        opts.forEach(o => { inp += `<label style="display:flex; align-items:center; border:1px solid #e2e8f0; padding:15px; margin-bottom:10px; border-radius:8px; background:#fff; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.05);"><input type="${qTipe==='PGK'?'checkbox':'radio'}" name="ans-${qId}" style="margin-right:15px; transform:scale(1.5);"><div style="flex-grow:1; margin:0;">${o}</div></label>`; });
-    } else {
-        inp = `<textarea style="width:100%; padding:15px; border:1px solid #e2e8f0; border-radius:8px; font-family:inherit; resize:vertical;" rows="5" placeholder="Ketik jawaban di sini..."></textarea>`;
-    }
-    return `<div style="font-family: 'Poppins', Arial, sans-serif; padding:15px 0; margin-bottom:20px;"><div style="background:#0f5132; color:white; display:inline-block; padding:5px 15px; border-radius:15px; font-size:13px; font-weight:bold; margin-bottom:15px;">Soal No. ${qNomor}</div><div style="margin-bottom:20px; font-size:16px; line-height:1.6; word-wrap: break-word;">${cleanedQuestion}</div>${inp}</div>`;
-}
 // Logika Generate Template Excel Bank Soal
 function downloadQuestionTemplate() {
     const wsData = [
@@ -2768,34 +2713,7 @@ function prosesCetakIdentitas() {
     downloadHTMLToPDF(`Identitas_${u.Nama.replace(/\s+/g,'_')}`, html);
 }
 
-function handleUploadUsersExcel(e) {
-    const file = e.target.files[0]; if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-        const json = XLSX.utils.sheet_to_json(XLSX.read(evt.target.result, {type: 'binary'}).Sheets[XLSX.read(evt.target.result, {type: 'binary'}).SheetNames[0]]);
-        if(json.length === 0) return Swal.fire('Error', 'Data Excel kosong atau format salah.', 'error');
-        
-        const formatted = json.map(r => ({
-            Nama: r.Nama || '-', 
-            Username: r.Username || ('user' + Date.now() + Math.floor(Math.random()*100)), 
-            Password: r.Password || '123456',
-            Role: String(r.Role || 'siswa').toLowerCase(), 
-            Sekolah: r.Sekolah || user.Sekolah || '-', 
-            Kelas: r.Kelas || '-', 
-            TglLahir: r.TglLahir || ''
-        }));
 
-        showLoad(true);
-        google.script.run.withSuccessHandler(res => {
-            showLoad(false); 
-            Swal.fire('Sukses', res.msg, 'success'); 
-            loadPage('admin-users');
-        }).adminBatchSaveUsers(formatted);
-    };
-    reader.readAsBinaryString(file);
-    e.target.value = '';
-}
-    
 function renderAbsenSiswa(data) {
     let h = `<div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-clipboard-user me-2"></i>Catatan Kehadiran Anda</h5><button class="btn btn-success shadow-sm rounded-pill px-4 fw-bold" onclick="doAbsen()"><i class="fas fa-hand-paper me-2"></i> Isi Absen Hari Ini</button></div>`;
     h += `<div class="card border-0 shadow-sm rounded-4 overflow-hidden"><div class="table-responsive"><table class="table table-hover align-middle mb-0 text-center"><thead class="table-light"><tr><th>Tanggal</th><th>Status Kehadiran</th></tr></thead><tbody>`;
