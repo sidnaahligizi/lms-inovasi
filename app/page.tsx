@@ -17,7 +17,6 @@ export default function Page() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
@@ -46,48 +45,52 @@ export default function Page() {
       <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
       <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 
-      <div style={{ fontFamily: "'Poppins', sans-serif", minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: "linear-gradient(135deg, #064e3b 0%, #15803d 50%, #d4af37 100%)", padding: '20px' }}>
-        <div className="container" style={{ maxWidth: '1100px' }}>
-          <div className="row g-4 align-items-center">
-            <div className="col-lg-7 text-white pe-lg-4 mb-4 mb-lg-0 text-center text-lg-start">
-              <h1 className="fw-bold mb-3 display-5">Selamat Datang di LMS Sekolah</h1>
-              <p className="lead mb-4 fw-light">Sistem Pembelajaran Jarak Jauh dan Ujian Berbasis Komputer (CBT) Terpadu KKGMI Kota Surabaya 10.</p>
+      <div style={{ fontFamily: "'Poppins', sans-serif", minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: "linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%)", padding: '20px' }}>
+        <div className="container shadow-lg rounded-4 overflow-hidden bg-white" style={{ maxWidth: '1100px' }}>
+          <div className="row g-0">
+            {/* Bagian Info (Kiri) */}
+            <div className="col-lg-6 text-white p-5 d-flex flex-column justify-content-center" style={{ background: "linear-gradient(135deg, #064e3b 0%, #15803d 100%)" }}>
+              <div className="text-center mb-4">
+                 <img src="https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq" alt="Logo" width="100" className="bg-white rounded-circle p-2 shadow" />
+              </div>
+              <h2 className="fw-bold mb-3 text-center text-warning">Selamat Datang di Portal LMS</h2>
+              <h4 className="mb-4 text-center">KKGMI Kota Surabaya 10</h4>
+              <p className="lead fs-6 text-center mb-4 opacity-75">Sistem Pembelajaran Digital dan Ujian Berbasis Komputer (CBT) Terpadu untuk kemudahan akses pendidikan yang lebih baik.</p>
               
-              <div className="bg-white text-dark p-4 rounded-4 shadow-sm mb-4 text-start" style={{ opacity: 0.95 }}>
-                <h5 className="fw-bold text-success mb-3"><i className="fas fa-layer-group me-2"></i>Ruang Belajar Interaktif</h5>
-                <ol className="mb-0 small text-muted" style={{ paddingLeft: '1.2rem', lineHeight: '1.8' }}>
-                  <li><strong>Modul Per Bab:</strong> Akses materi teks, dokumen PDF, dan video pembelajaran langsung dari Dashboard.</li>
-                  <li><strong>Rekap Kehadiran:</strong> Guru dapat memantau dan Siswa wajib mengisi absensi kelas harian.</li>
-                  <li><strong>Evaluasi & Raport:</strong> Mengerjakan Ulangan Harian/TKA dan unduh Raport Akademik.</li>
-                </ol>
+              <div className="bg-white text-dark p-4 rounded-4 shadow-sm mb-3">
+                <h6 className="fw-bold text-success mb-2"><i className="fas fa-info-circle me-2"></i>Informasi Portal</h6>
+                <ul className="mb-0 small text-muted list-unstyled" style={{ lineHeight: '1.8' }}>
+                  <li><i className="fas fa-check text-success me-2"></i> Akses Modul & Materi Kapan Saja</li>
+                  <li><i className="fas fa-check text-success me-2"></i> Pelaksanaan Ujian (CBT) Akurat</li>
+                  <li><i className="fas fa-check text-success me-2"></i> Pantauan Nilai & Absensi Real-time</li>
+                </ul>
               </div>
             </div>
 
-            <div className="col-lg-5">
-              <div style={{ background: 'white', borderRadius: '24px', padding: '40px', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
-                <div className="text-center mb-4">
-                  <h4 className="fw-bold mb-1" style={{ color: '#064e3b' }}>MASUK PORTAL</h4>
-                  <p className="small text-muted">Gunakan NIS/Username Anda</p>
-                </div>
-                <form onSubmit={handleLogin}>
-                  <div className="form-floating mb-3">
-                    <input type="text" className="form-control bg-light border-0" placeholder="User" required value={username} onChange={(e) => setUsername(e.target.value)} />
-                    <label>Username / NIS</label>
-                  </div>
-                  <div className="form-floating mb-3 position-relative">
-                    <input type={showPassword ? "text" : "password"} className="form-control bg-light border-0" placeholder="Pass" required value={password} onChange={(e) => setPassword(e.target.value)} />
-                    <label>Password</label>
-                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'} position-absolute top-50 end-0 translate-middle-y me-3 text-muted`} style={{ cursor: 'pointer', zIndex: 10 }} onClick={() => setShowPassword(!showPassword)}></i>
-                  </div>
-                  <div className="form-floating mb-4">
-                    <input type="date" className="form-control bg-light border-0" value={tglLahir} onChange={(e) => setTglLahir(e.target.value)} />
-                    <label>Tanggal Lahir (Siswa Wajib Isi)</label>
-                  </div>
-                  <button type="submit" disabled={loading} className="btn w-100 py-3 fw-bold shadow-sm text-white" style={{ background: 'linear-gradient(90deg, #064e3b 0%, #15803d 100%)', border: 'none', borderRadius: '12px' }}>
-                    {loading ? <><i className="fas fa-spinner fa-spin me-2"></i>MEMPROSES...</> : <><i className="fas fa-sign-in-alt me-2"></i>MASUK SEKARANG</>}
-                  </button>
-                </form>
+            {/* Bagian Login (Kanan) */}
+            <div className="col-lg-6 p-5 d-flex flex-column justify-content-center bg-light">
+              <div className="text-center mb-4">
+                <h3 className="fw-bold" style={{ color: '#064e3b' }}>MASUK AKUN</h3>
+                <p className="text-muted small">Silakan gunakan identitas yang telah terdaftar</p>
               </div>
+              <form onSubmit={handleLogin}>
+                <div className="form-floating mb-3">
+                  <input type="text" className="form-control border-secondary shadow-sm rounded-3" placeholder="User" required value={username} onChange={(e) => setUsername(e.target.value)} />
+                  <label>Username / NISN</label>
+                </div>
+                <div className="form-floating mb-3 position-relative">
+                  <input type={showPassword ? "text" : "password"} className="form-control border-secondary shadow-sm rounded-3" placeholder="Pass" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <label>Password</label>
+                  <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'} position-absolute top-50 end-0 translate-middle-y me-3 text-muted`} style={{ cursor: 'pointer', zIndex: 10 }} onClick={() => setShowPassword(!showPassword)}></i>
+                </div>
+                <div className="form-floating mb-4">
+                  <input type="date" className="form-control border-secondary shadow-sm rounded-3" value={tglLahir} onChange={(e) => setTglLahir(e.target.value)} />
+                  <label>Tanggal Lahir (Wajib bagi Siswa)</label>
+                </div>
+                <button type="submit" disabled={loading} className="btn w-100 py-3 fw-bold shadow-sm text-white rounded-3" style={{ background: '#d4af37', border: 'none', fontSize: '1.1rem' }}>
+                  {loading ? <><i className="fas fa-spinner fa-spin me-2"></i>MEMPROSES...</> : <><i className="fas fa-sign-in-alt me-2"></i> MASUK SEKARANG</>}
+                </button>
+              </form>
             </div>
           </div>
         </div>
