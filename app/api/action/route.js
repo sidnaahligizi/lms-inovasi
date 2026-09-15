@@ -39,9 +39,14 @@ export async function POST(req) {
 
     if (action === 'getUserList') {
       const [role, , sekolah] = args;
-      let users;
-      if (role === 'guru') users = await turso.execute({ sql: "SELECT * FROM Users WHERE Role = 'siswa' AND LOWER(TRIM(Sekolah)) = LOWER(TRIM(?))", args: [sekolah] });
-      else users = await turso.execute("SELECT * FROM Users"); 
+      let sql = "SELECT * FROM Users";
+      let pArgs = [];
+      // Jika guru, hanya tampilkan user (siswa & guru) di sekolahnya
+      if (role === 'guru') {
+          sql += " WHERE LOWER(TRIM(Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(sekolah)) = LOWER(TRIM(?))";
+          pArgs.push(sekolah, sekolah);
+      }
+      const users = await turso.execute({ sql: sql, args: pArgs });
       return NextResponse.json({ status: 'success', data: users.rows });
     }
 
@@ -49,28 +54,42 @@ export async function POST(req) {
     // 2. MANAJEMEN ABSENSI (SISWA & GURU)
     // ==========================================
     if (action === 'adminSaveAbsenBatch') {
-        const [records] = args; // Array of {uid, tgl, status}
+        const [records] = args; 
         for(let r of records) {
             const id = 'ABS' + Date.now() + Math.floor(Math.random() * 1000);
-            await turso.execute({
-                sql: "INSERT INTO Attendance (AbsenID, SiswaID, Tanggal, Status) VALUES (?, ?, ?, ?)",
-                args: [id, r.uid, r.tgl, r.status]
-            });
+            await turso.execute({ sql: "INSERT INTO Attendance (AbsenID, SiswaID, Tanggal, Status) VALUES (?, ?, ?, ?)", args: [id, r.uid, r.tgl, r.status] });
         }
-        return NextResponse.json({ status: 'success', msg: 'Absensi kelas berhasil disimpan!' });
+        return NextResponse.json({ status: 'success', msg: 'Absensi berhasil disimpan!' });
+    }
+
+    if (action === 'adminUpdateAbsen') {
+        await turso.execute({ sql: "UPDATE Attendance SET Status = ? WHERE AbsenID = ? OR absenid = ?", args: [args[1], args[0], args[0]] });
+        return NextResponse.json({ status: 'success' });
     }
 
     if (action === 'getAbsenRekap') {
         const [role, sekolah] = args;
-        let sql = "SELECT a.Tanggal, a.Status, u.Nama, u.Kelas, u.Sekolah FROM Attendance a JOIN Users u ON a.SiswaID = u.ID OR a.siswaid = u.id";
+        let sql = "SELECT a.AbsenID, a.absenid, a.Tanggal, a.tanggal, a.Status, a.status, u.Nama, u.nama, u.Kelas, u.kelas, u.Sekolah, u.sekolah, u.Role, u.role FROM Attendance a JOIN Users u ON a.SiswaID = u.ID OR a.siswaid = u.id";
         let pArgs = [];
         if (role === 'guru') { 
-            sql += " WHERE LOWER(TRIM(u.Sekolah)) = LOWER(TRIM(?))"; 
-            pArgs.push(sekolah); 
+            sql += " WHERE LOWER(TRIM(u.Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(u.sekolah)) = LOWER(TRIM(?))"; 
+            pArgs.push(sekolah, sekolah); 
         }
-        sql += " ORDER BY a.Tanggal DESC";
+        sql += " ORDER BY COALESCE(a.Tanggal, a.tanggal) DESC";
         const recap = await turso.execute({ sql, args: pArgs });
         return NextResponse.json({ status: 'success', data: recap.rows });
+    }
+
+    if (action === 'getSiswaAbsen') {
+        const history = await turso.execute({ sql: "SELECT * FROM Attendance WHERE SiswaID = ? OR siswaid = ? ORDER BY COALESCE(Tanggal, tanggal) DESC", args: [args[0], args[0]] });
+        return NextResponse.json({ status: 'success', data: history.rows });
+    }
+
+    if (action === 'submitAbsen') {
+      const uid = args[0];
+      const dateNow = new Date().toISOString().split('T')[0];
+      await turso.execute({ sql: "INSERT INTO Attendance (AbsenID, SiswaID, Tanggal, Status) VALUES (?, ?, ?, 'Hadir')", args: ['ABS' + Date.now(), uid, dateNow] });
+      return NextResponse.json({ status: 'success', msg: 'Berhasil melakukan absensi hari ini!' });
     }
 
     // ==========================================
@@ -81,51 +100,52 @@ export async function POST(req) {
       let output = { logo: 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq' };
       
       try {
-          const notifs = await turso.execute("SELECT * FROM Notifications ORDER BY Tanggal DESC LIMIT 5");
+          const notifs = await turso.execute("SELECT * FROM Notifications ORDER BY COALESCE(Tanggal, tanggal) DESC LIMIT 5");
           output.notifications = notifs.rows;
       } catch(e) { output.notifications = []; }
 
       if (role === 'admin' || role === 'guru') {
-        // GURU HANYA MELIHAT UJIAN & MATERI BUATANNYA SENDIRI
         let exams, materials;
         if (role === 'guru') {
-            exams = await turso.execute({ sql: "SELECT * FROM Exams WHERE Mapel != 'SURVEY' AND (PembuatID = ? OR pembuatid = ?)", args: [userId, userId] });
+            exams = await turso.execute({ sql: "SELECT * FROM Exams WHERE LOWER(COALESCE(Mapel, mapel)) != 'survey' AND (PembuatID = ? OR pembuatid = ?)", args: [userId, userId] });
             materials = await turso.execute({ sql: "SELECT * FROM Materials WHERE PembuatID = ? OR pembuatid = ?", args: [userId, userId] });
         } else {
-            exams = await turso.execute("SELECT * FROM Exams WHERE Mapel != 'SURVEY'");
+            exams = await turso.execute("SELECT * FROM Exams WHERE LOWER(COALESCE(Mapel, mapel)) != 'survey'");
             materials = await turso.execute("SELECT * FROM Materials");
         }
         
-        let users = role === 'guru' ? await turso.execute({ sql: "SELECT * FROM Users WHERE Role = 'siswa' AND LOWER(TRIM(Sekolah)) = LOWER(TRIM(?))", args: [sekolah] }) : await turso.execute("SELECT * FROM Users WHERE Role = 'siswa'");
+        let sqlUsers = role === 'guru' ? "SELECT * FROM Users WHERE (Role = 'siswa' OR role = 'siswa') AND (LOWER(TRIM(Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(sekolah)) = LOWER(TRIM(?)))" : "SELECT * FROM Users WHERE Role = 'siswa' OR role = 'siswa'";
+        let pArgsUsers = role === 'guru' ? [sekolah, sekolah] : [];
+        let users = await turso.execute({ sql: sqlUsers, args: pArgsUsers });
             
         output.exams = exams.rows;
         output.materials = materials.rows;
         output.stats = { totalSiswa: users.rows.length, totalUjian: exams.rows.length, activeUjian: exams.rows.filter(e => (e.Status||e.status) === 'Aktif').length };
 
-        const schoolRankQuery = await turso.execute(`SELECT u.Sekolah, AVG(r.TotalNilai) as RataRata FROM Results r JOIN Users u ON r.SiswaID = u.ID OR r.siswaid = u.id JOIN Exams e ON r.ExamID = e.ExamID OR r.examid = e.examid WHERE e.Mapel != 'SURVEY' ${role === 'guru' ? "AND e.ShowStats IN ('Yes', 'Aktif')" : ""} GROUP BY u.Sekolah ORDER BY RataRata DESC`);
+        const schoolRankQuery = await turso.execute(`SELECT COALESCE(u.Sekolah, u.sekolah) as Sekolah, AVG(COALESCE(r.TotalNilai, r.totalnilai)) as RataRata FROM Results r JOIN Users u ON r.SiswaID = u.ID OR r.siswaid = u.id JOIN Exams e ON r.ExamID = e.ExamID OR r.examid = e.examid WHERE LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey' ${role === 'guru' ? "AND COALESCE(e.ShowStats, e.showstats) IN ('Yes', 'Aktif')" : ""} GROUP BY COALESCE(u.Sekolah, u.sekolah) ORDER BY RataRata DESC`);
         output.schoolRanks = schoolRankQuery.rows;
 
         if (role === 'guru') {
             const studentRankQuery = await turso.execute({
-                sql: `SELECT u.Nama, u.Kelas, e.Mapel, AVG(r.TotalNilai) as RataRata FROM Results r JOIN Users u ON r.SiswaID = u.ID OR r.siswaid = u.id JOIN Exams e ON r.ExamID = e.ExamID OR r.examid = e.examid WHERE LOWER(TRIM(u.Sekolah)) = LOWER(TRIM(?)) AND e.Mapel != 'SURVEY' AND e.ShowStats IN ('Yes', 'Aktif') GROUP BY u.ID, u.id, e.Mapel ORDER BY e.Mapel ASC, RataRata DESC`, args: [sekolah]
+                sql: `SELECT COALESCE(u.Nama, u.nama) as Nama, COALESCE(u.Kelas, u.kelas) as Kelas, COALESCE(e.Mapel, e.mapel) as Mapel, AVG(COALESCE(r.TotalNilai, r.totalnilai)) as RataRata FROM Results r JOIN Users u ON r.SiswaID = u.ID OR r.siswaid = u.id JOIN Exams e ON r.ExamID = e.ExamID OR r.examid = e.examid WHERE (LOWER(TRIM(u.Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(u.sekolah)) = LOWER(TRIM(?))) AND LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey' AND COALESCE(e.ShowStats, e.showstats) IN ('Yes', 'Aktif') GROUP BY u.ID, u.id, COALESCE(e.Mapel, e.mapel) ORDER BY COALESCE(e.Mapel, e.mapel) ASC, RataRata DESC`, args: [sekolah, sekolah]
             });
             output.studentRanks = studentRankQuery.rows;
         }
 
       } else if (role === 'siswa') {
-        const exams = await turso.execute("SELECT * FROM Exams WHERE Mapel != 'SURVEY'");
+        const exams = await turso.execute("SELECT * FROM Exams WHERE LOWER(COALESCE(Mapel, mapel)) != 'survey'");
         output.availableExams = exams.rows.filter(e => (e.Status||e.status) === 'Aktif');
         const materials = await turso.execute("SELECT * FROM Materials");
         output.materials = materials.rows;
         
         const history = await turso.execute({ 
-          sql: "SELECT r.ResultID, r.ExamID, r.WaktuSubmit, r.TotalNilai as Nilai, e.Judul, e.AllowDownloadR, e.AllowDownloadQ, e.ShowStats, r.Pelanggaran FROM Results r JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE (r.SiswaID = ? OR r.siswaid = ?) AND e.Mapel != 'SURVEY'", 
+          sql: "SELECT COALESCE(r.ResultID, r.resultid) as ResultID, COALESCE(r.ExamID, r.examid) as ExamID, COALESCE(r.WaktuSubmit, r.waktusubmit) as WaktuSubmit, COALESCE(r.TotalNilai, r.totalnilai) as Nilai, COALESCE(e.Judul, e.judul) as Judul, COALESCE(e.AllowDownloadR, e.allowdownloadr) as AllowDownloadR, COALESCE(e.AllowDownloadQ, e.allowdownloadq) as AllowDownloadQ, COALESCE(e.ShowStats, e.showstats) as ShowStats, COALESCE(r.Pelanggaran, r.pelanggaran) as Pelanggaran FROM Results r JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE (r.SiswaID = ? OR r.siswaid = ?) AND LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey'", 
           args: [userId, userId] 
         });
         output.history = history.rows;
 
         try {
-            const absenStatus = await turso.execute({ sql: "SELECT * FROM Attendance WHERE (SiswaID = ? OR siswaid = ?) AND Tanggal = date('now')", args: [userId, userId]});
+            const absenStatus = await turso.execute({ sql: "SELECT * FROM Attendance WHERE (SiswaID = ? OR siswaid = ?) AND COALESCE(Tanggal, tanggal) = date('now')", args: [userId, userId]});
             output.hasAbsen = absenStatus.rows.length > 0;
         } catch(e) { output.hasAbsen = false; }
       }
@@ -133,7 +153,7 @@ export async function POST(req) {
     }
 
     // ==========================================
-    // 4. API UNTUK RAPORT
+    // 4. API UNTUK RAPORT (MENGGUNAKAN COALESCE AGAR KEBAL)
     // ==========================================
     if (action === 'getRaportData') {
         const [role, sekolah] = args;
@@ -141,8 +161,8 @@ export async function POST(req) {
         let pArgs = [];
         if (role === 'guru') { sqlUsers += " AND LOWER(TRIM(COALESCE(Sekolah, sekolah))) = LOWER(TRIM(?))"; pArgs.push(sekolah); }
         const users = await turso.execute({ sql: sqlUsers, args: pArgs });
-        const results = await turso.execute("SELECT COALESCE(r.SiswaID, r.siswaid) as sID, COALESCE(r.TotalNilai, r.totalnilai) as tNilai, COALESCE(e.Mapel, e.mapel) as tMapel, COALESCE(e.Judul, e.judul) as tJudul FROM Results r JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE COALESCE(e.Mapel, e.mapel) != 'SURVEY'");
-        const absen = await turso.execute("SELECT COALESCE(SiswaID, siswaid) as sID, Status, status, COUNT(*) as Jml FROM Attendance GROUP BY COALESCE(SiswaID, siswaid), Status, status");
+        const results = await turso.execute("SELECT COALESCE(r.SiswaID, r.siswaid) as sID, COALESCE(r.TotalNilai, r.totalnilai) as tNilai, COALESCE(e.Mapel, e.mapel) as tMapel, COALESCE(e.Judul, e.judul) as tJudul FROM Results r JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey'");
+        const absen = await turso.execute("SELECT COALESCE(SiswaID, siswaid) as sID, COALESCE(Status, status) as sts, COUNT(*) as Jml FROM Attendance GROUP BY COALESCE(SiswaID, siswaid), COALESCE(Status, status)");
 
         return NextResponse.json({ status: 'success', data: { users: users.rows, results: results.rows, absen: absen.rows } });
     }
@@ -170,14 +190,16 @@ export async function POST(req) {
     }
 
     if (action === 'adminSaveExam') {
-      const d = args[0]; const id = d.examId || ('EX' + Date.now());
-      const cek = await turso.execute({ sql: "SELECT ExamID FROM Exams WHERE ExamID = ? OR examid = ?", args: [id, id] });
+      const d = args[0]; 
+      // JIKA EDIT, PASTIKAN MENGGUNAKAN ID LAMA. JIKA BARU, BUAT ID BARU.
+      const id = (d.examId && d.examId.trim() !== '') ? d.examId : ('EX' + Date.now());
+      const cek = await turso.execute({ sql: "SELECT * FROM Exams WHERE ExamID = ? OR examid = ?", args: [id, id] });
       if (cek.rows.length > 0) {
         await turso.execute({ sql: "UPDATE Exams SET Judul=?, Mapel=?, TargetKelas=?, Durasi=?, Token=?, StartDate=?, EndDate=?, LimitTries=?, ShowStats=?, RandomQ=?, AllowDownloadQ=?, AllowDownloadR=? WHERE ExamID=? OR examid=?", args: [d.judul, d.mapel, d.targetKelas, d.durasi, d.token || '', d.start, d.end, d.limit || 1, d.showStats, d.randomQ, d.dlSoal, d.dlHasil, id, id] });
       } else {
         await turso.execute({ sql: "INSERT INTO Exams (ExamID, Judul, Mapel, TargetKelas, Durasi, Token, StartDate, EndDate, LimitTries, ShowStats, RandomQ, AllowDownloadQ, AllowDownloadR, PembuatID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", args: [id, d.judul, d.mapel, d.targetKelas, d.durasi, d.token || '', d.start, d.end, d.limit || 1, d.showStats, d.randomQ, d.dlSoal, d.dlHasil, d.userId] });
       }
-      return NextResponse.json({ status: 'success', msg: 'Jadwal Ujian berhasil dibuat!' });
+      return NextResponse.json({ status: 'success', msg: 'Jadwal Ujian berhasil disimpan!' });
     }
 
     if (action === 'adminDeleteExam') {
@@ -256,7 +278,7 @@ export async function POST(req) {
 
     if (action === 'getRecapList') {
       const [role, , sekolah] = args;
-      let sql = `SELECT r.ResultID, r.resultid, r.TotalNilai, r.totalnilai, r.WaktuSubmit, r.waktusubmit, r.Detail, r.detail, r.SiswaID, r.siswaid, r.ExamID, r.examid, r.Pelanggaran, r.pelanggaran, u.Nama, u.nama, u.Kelas, u.kelas, u.Sekolah, u.sekolah, e.Judul, e.judul, e.Mapel, e.mapel, e.ShowStats, e.showstats FROM Results r LEFT JOIN Users u ON (r.SiswaID = u.ID OR r.siswaid = u.id) LEFT JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE 1=1`;
+      let sql = `SELECT COALESCE(r.ResultID, r.resultid) as ResultID, COALESCE(r.TotalNilai, r.totalnilai) as TotalNilai, COALESCE(r.WaktuSubmit, r.waktusubmit) as WaktuSubmit, COALESCE(r.Detail, r.detail) as Detail, COALESCE(u.Nama, u.nama) as NamaSiswa, COALESCE(u.Kelas, u.kelas) as KelasSiswa, COALESCE(u.Sekolah, u.sekolah) as SekolahSiswa, COALESCE(e.Judul, e.judul) as JudulUjian, COALESCE(e.Mapel, e.mapel) as Mapel, COALESCE(e.ShowStats, e.showstats) as ShowStats FROM Results r LEFT JOIN Users u ON (r.SiswaID = u.ID OR r.siswaid = u.id) LEFT JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE 1=1`;
       let pArgs = [];
       if (role === 'guru') { sql += ` AND LOWER(TRIM(COALESCE(u.Sekolah, u.sekolah))) = LOWER(TRIM(?))`; pArgs.push(sekolah); }
       const results = await turso.execute({ sql: sql, args: pArgs });
