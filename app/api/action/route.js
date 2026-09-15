@@ -14,8 +14,8 @@ export async function POST(req) {
         for (let u of usersArr) {
             const id = 'U' + Date.now() + Math.floor(Math.random() * 10000);
             await turso.execute({ 
-                sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, nok_kk, alamat, rt_rw, kode_pos, desa, kecamatan, kabupaten, wali) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
-                args: [id, u.Nama||'-', u.Username||('user'+id), u.Password||'123456', String(u.Role||'siswa').toLowerCase(), u.Sekolah||'', u.Kelas||'', u.TglLahir||'', u.NIS||'', u.NISN||'', u.JenisKelamin||'L', u.TempatLahir||'', u.NamaAyah||'', u.NamaIbu||'', u.NIK||'', u.nok_kk||'', u.Alamat||'', u.rt_rw||'', u.kode_pos||'', u.DesaKelurahan||'', u.Kecamatan||'', u.KabupatenKota||'', u.NamaWali||''] 
+                sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, no_kk, alamat, rt_rw, kode_pos, kelurahan, kecamatan, kabupaten, wali) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+                args: [id, u.Nama||'-', u.Username||('user'+id), u.Password||'123456', String(u.Role||'siswa').toLowerCase(), u.Sekolah||'-', u.Kelas||'-', u.TglLahir||'-', u.NIS||'-', u.NISN||'-', u.JenisKelamin||'L', u.TempatLahir||'-', u.NamaAyah||'-', u.NamaIbu||'-', u.NIK||'-', u.NoKK||'-', u.Alamat||'-', u.RTRW||'-', u.KodePos||'-', u.DesaKelurahan||'-', u.Kecamatan||'-', u.KabupatenKota||'-', u.NamaWali||'-'] 
             });
         }
         return NextResponse.json({ status: 'success', msg: `${usersArr.length} data siswa berhasil diupload!` });
@@ -26,23 +26,27 @@ export async function POST(req) {
       if (mode === 'save') {
         const id = d.id || ('U' + Date.now());
         
-        // Mencegah Duplikasi NISN
         if(d.nisn) {
             const cekDuplicate = await turso.execute({ sql: "SELECT ID FROM Users WHERE (NISN = ? OR nisn = ?) AND (ID != ? AND id != ?)", args: [d.nisn, d.nisn, id, id] });
             if(cekDuplicate.rows.length > 0) return NextResponse.json({ status: 'error', msg: 'NISN sudah terdaftar pada akun lain!' });
         }
 
         const cek = await turso.execute({ sql: "SELECT ID FROM Users WHERE ID = ? OR id = ?", args: [id, id] });
+        
+        // Memastikan tidak ada nilai 'undefined' yang masuk ke Turso
+        const safeArgs = [
+            d.nama || '-', d.username || '-', d.password || '123456', d.role || 'siswa', d.sekolah || '-', d.kelas || '-', d.tglLahir || '-', d.foto || '', d.nis || '-', d.nisn || '-', d.jk || 'L', d.tempatLahir || '-', d.ayah || '-', d.ibu || '-', d.nik || '-', d.nokk || '-', d.alamat || '-', d.rtrw || '-', d.kodepos || '-', d.kelurahan || '-', d.kecamatan || '-', d.kabupaten || '-', d.wali || '-'
+        ];
+
         if (cek.rows.length > 0) {
-          // Menyesuaikan kolom dengan Turso DB (jk, tempat_lahir, ayah, ibu, nik, dll)
           await turso.execute({ 
-              sql: "UPDATE Users SET Nama=?, Username=?, Password=?, Role=?, Sekolah=?, Kelas=?, TglLahir=?, Foto=?, NIS=?, NISN=?, jk=?, tempat_lahir=?, ayah=?, ibu=?, nik=?, nok_kk=?, alamat=?, rt_rw=?, kode_pos=?, desa=?, kecamatan=?, kabupaten=?, wali=? WHERE ID=? OR id=?", 
-              args: [d.nama, d.username, d.password, d.role, d.sekolah, d.kelas, d.tglLahir, d.foto, d.nis, d.nisn, d.jk, d.tempatLahir, d.ayah, d.ibu, d.nik, d.nok_kk, d.alamat, d.rt_rw, d.kode_pos, d.desa, d.kecamatan, d.kabupaten, d.wali, id, id] 
+              sql: "UPDATE Users SET Nama=?, Username=?, Password=?, Role=?, Sekolah=?, Kelas=?, TglLahir=?, Foto=?, NIS=?, NISN=?, jk=?, tempat_lahir=?, ayah=?, ibu=?, nik=?, no_kk=?, alamat=?, rt_rw=?, kode_pos=?, kelurahan=?, kecamatan=?, kabupaten=?, wali=? WHERE ID=? OR id=?", 
+              args: [...safeArgs, id, id] 
           });
         } else {
           await turso.execute({ 
-              sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, Foto, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, nok_kk, alamat, rt_rw, kode_pos, desa, kecamatan, kabupaten, wali) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
-              args: [id, d.nama, d.username, d.password, d.role, d.sekolah, d.kelas, d.tglLahir, d.foto, d.nis, d.nisn, d.jk, d.tempatLahir, d.ayah, d.ibu, d.nik, d.nok_kk, d.alamat, d.rt_rw, d.kode_pos, d.desa, d.kecamatan, d.kabupaten, d.wali] 
+              sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, Foto, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, no_kk, alamat, rt_rw, kode_pos, kelurahan, kecamatan, kabupaten, wali) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
+              args: [id, ...safeArgs] 
           });
         }
       } else if (mode === 'delete') {
@@ -52,7 +56,7 @@ export async function POST(req) {
     }
 
     if (action === 'getUserList') {
-      const [role, id, sekolah, kelas] = args;
+      const [role, id, sekolah, kelas] = args; 
       let sql = "SELECT * FROM Users";
       let pArgs = [];
       if (role === 'guru') {
@@ -65,7 +69,7 @@ export async function POST(req) {
 
     if (action === 'getRaportData') {
         const [role, sekolah, kelas] = args;
-        let sqlUsers = "SELECT ID, id, Nama, nama, Kelas, kelas, Sekolah, sekolah, Username, username FROM Users WHERE Role='siswa' OR role='siswa'";
+        let sqlUsers = "SELECT * FROM Users WHERE Role='siswa' OR role='siswa'";
         let pArgs = [];
         if (role === 'guru') { 
             sqlUsers += " AND LOWER(TRIM(COALESCE(Sekolah, sekolah))) = LOWER(TRIM(?)) AND LOWER(TRIM(COALESCE(Kelas, kelas))) = LOWER(TRIM(?))"; 
@@ -79,7 +83,7 @@ export async function POST(req) {
     }
 
     // ==========================================
-    // 2. MANAJEMEN ABSENSI (SISWA & GURU) & NOTIFIKASI
+    // 2. MANAJEMEN ABSENSI & NOTIFIKASI
     // ==========================================
     if (action === 'adminSaveAbsenBatch') {
         const [records] = args; 
@@ -127,14 +131,14 @@ export async function POST(req) {
       await turso.execute({ sql: "INSERT INTO Notifications (NotifID, Pesan, Tanggal, PembuatID) VALUES (?, ?, ?, ?)", args: [id, finalPesan, new Date().toISOString().split('T')[0], args[1]] });
       return NextResponse.json({ status: 'success' });
     }
+    
     if (action === 'adminDeleteNotif') {
       await turso.execute({ sql: "DELETE FROM Notifications WHERE NotifID = ? OR notifid = ?", args: [args[0], args[0]] });
       return NextResponse.json({ status: 'success' });
     }
 
     if (action === 'adminEditNotifText') {
-      const id = args[0];
-      const newText = args[1];
+      const id = args[0]; const newText = args[1];
       const oldNotif = await turso.execute({ sql: "SELECT * FROM Notifications WHERE NotifID = ? OR notifid = ?", args: [id, id] });
       if (oldNotif.rows.length > 0) {
          let currentMsg = oldNotif.rows[0].Pesan || oldNotif.rows[0].pesan;
@@ -187,13 +191,6 @@ export async function POST(req) {
 
         const schoolRankQuery = await turso.execute(`SELECT COALESCE(u.Sekolah, u.sekolah) as Sekolah, AVG(COALESCE(r.TotalNilai, r.totalnilai)) as RataRata FROM Results r JOIN Users u ON r.SiswaID = u.ID OR r.siswaid = u.id JOIN Exams e ON r.ExamID = e.ExamID OR r.examid = e.examid WHERE LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey' ${role === 'guru' ? "AND COALESCE(e.ShowStats, e.showstats) IN ('Yes', 'Aktif')" : ""} GROUP BY COALESCE(u.Sekolah, u.sekolah) ORDER BY RataRata DESC`);
         output.schoolRanks = schoolRankQuery.rows;
-
-        if (role === 'guru') {
-            const studentRankQuery = await turso.execute({
-                sql: `SELECT COALESCE(u.Nama, u.nama) as Nama, COALESCE(u.Kelas, u.kelas) as Kelas, COALESCE(e.Mapel, e.mapel) as Mapel, AVG(COALESCE(r.TotalNilai, r.totalnilai)) as RataRata FROM Results r JOIN Users u ON r.SiswaID = u.ID OR r.siswaid = u.id JOIN Exams e ON r.ExamID = e.ExamID OR r.examid = e.examid WHERE (LOWER(TRIM(u.Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(u.sekolah)) = LOWER(TRIM(?))) AND LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey' AND COALESCE(e.ShowStats, e.showstats) IN ('Yes', 'Aktif') GROUP BY u.ID, u.id, COALESCE(e.Mapel, e.mapel) ORDER BY COALESCE(e.Mapel, e.mapel) ASC, RataRata DESC`, args: [sekolah, sekolah]
-            });
-            output.studentRanks = studentRankQuery.rows;
-        }
 
       } else if (role === 'siswa') {
         const exams = await turso.execute("SELECT * FROM Exams WHERE LOWER(COALESCE(Mapel, mapel)) != 'survey'");
