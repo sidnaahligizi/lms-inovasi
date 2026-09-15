@@ -6,45 +6,44 @@ export async function POST(req) {
   try {
     const { action, args } = await req.json();
 
-    // AUTO-MIGRATE: Tambahkan kolom Biodata jika belum ada di database Turso
-    try { await turso.execute("ALTER TABLE Users ADD COLUMN Biodata TEXT DEFAULT '{}'"); } catch(e) {}
-
     // ==========================================
-    // 1. MANAJEMEN USER, SEKOLAH & IDENTITAS
+    // 1. MANAJEMEN USER & SEKOLAH
     // ==========================================
     if (action === 'adminBatchSaveUsers') {
         const usersArr = args[0];
         for (let u of usersArr) {
             const id = 'U' + Date.now() + Math.floor(Math.random() * 10000);
-            const bio = JSON.stringify({
-                nis: u.NIS || '', nisn: u.NISN || '', jk: u['Jenis Kelamin'] || '', tempatLahir: u['Tempat Lahir'] || '',
-                ayah: u.Ayah || '', ibu: u.Ibu || '', nik: u.NIK || '', kk: u.KK || '', alamat: u.Alamat || '',
-                rtrw: u['RT/RW'] || '', kodePos: u['Kode Pos'] || '', desa: u['Desa/Kelurahan'] || '',
-                kecamatan: u.Kecamatan || '', kabkota: u['Kabupaten/Kota'] || '', wali: u.Wali || ''
+            await turso.execute({ 
+                sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                args: [id, u.Nama || '-', u.Username || ('user'+id), u.Password || '123456', String(u.Role || 'siswa').toLowerCase(), u.Sekolah || '', u.Kelas || '', u.TglLahir || ''] 
             });
-            // Cek duplikat Username
-            const cekDb = await turso.execute({ sql: "SELECT ID FROM Users WHERE Username = ? OR username = ?", args: [u.Username, u.Username] });
-            if (cekDb.rows.length === 0) {
-                await turso.execute({ 
-                    sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, Biodata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
-                    args: [id, u.Nama || '-', u.Username || ('user'+id), u.Password || '123456', String(u.Role || 'siswa').toLowerCase(), u.Sekolah || '', u.Kelas || '', u.TglLahir || '', bio] 
-                });
-            }
         }
-        return NextResponse.json({ status: 'success', msg: `Proses upload selesai. Data ganda (jika ada) otomatis dilewati.` });
+        return NextResponse.json({ status: 'success', msg: `${usersArr.length} data siswa berhasil diupload!` });
     }
 
-    if (action === 'adminManageUser') {
+if (action === 'adminManageUser') {
       const mode = args[0]; const d = args[1];
       if (mode === 'save') {
         const id = d.id || ('U' + Date.now());
-        const bio = JSON.stringify({ nis: d.nis, nisn: d.nisn, jk: d.jk, tempatLahir: d.tempatLahir, ayah: d.ayah, ibu: d.ibu, nik: d.nik, kk: d.kk, alamat: d.alamat, rtrw: d.rtrw, kodePos: d.kodePos, desa: d.desa, kecamatan: d.kecamatan, kabkota: d.kabkota, wali: d.wali });
         
+        // Mencegah Duplikasi NISN (Pastikan kolom NISN ada di database Turso Anda)
+        if(d.nisn) {
+            const cekDuplicate = await turso.execute({ sql: "SELECT ID FROM Users WHERE (NISN = ? OR nisn = ?) AND (ID != ? AND id != ?)", args: [d.nisn, d.nisn, id, id] });
+            if(cekDuplicate.rows.length > 0) return NextResponse.json({ status: 'error', msg: 'NISN sudah terdaftar pada akun lain!' });
+        }
+
         const cek = await turso.execute({ sql: "SELECT ID FROM Users WHERE ID = ? OR id = ?", args: [id, id] });
         if (cek.rows.length > 0) {
-          await turso.execute({ sql: "UPDATE Users SET Nama=?, Username=?, Password=?, Role=?, Sekolah=?, Kelas=?, TglLahir=?, Foto=?, Biodata=? WHERE ID=? OR id=?", args: [d.nama, d.username, d.password, d.role, d.sekolah, d.kelas, d.tglLahir, d.foto, bio, id, id] });
+          // Update Query (Pastikan kolom-kolom baru ini dibuat di Turso)
+          await turso.execute({ 
+              sql: "UPDATE Users SET Nama=?, Username=?, Password=?, Role=?, Sekolah=?, Kelas=?, TglLahir=?, Foto=?, NIS=?, NISN=?, JenisKelamin=?, TempatLahir=?, NamaAyah=?, NamaIbu=?, NIK=?, NoKK=?, Alamat=?, RTRW=?, KodePos=?, DesaKelurahan=?, Kecamatan=?, KabupatenKota=?, NamaWali=? WHERE ID=? OR id=?", 
+              args: [d.nama, d.username, d.password, d.role, d.sekolah, d.kelas, d.tglLahir, d.foto, d.nis, d.nisn, d.jk, d.tempatLahir, d.ayah, d.ibu, d.nik, d.nokk, d.alamat, d.rtrw, d.kodepos, d.desa, d.kecamatan, d.kabupaten, d.wali, id, id] 
+          });
         } else {
-          await turso.execute({ sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, Foto, Biodata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", args: [id, d.nama, d.username, d.password, d.role, d.sekolah, d.kelas, d.tglLahir, d.foto, bio] });
+          await turso.execute({ 
+              sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, Foto, NIS, NISN, JenisKelamin, TempatLahir, NamaAyah, NamaIbu, NIK, NoKK, Alamat, RTRW, KodePos, DesaKelurahan, Kecamatan, KabupatenKota, NamaWali) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
+              args: [id, d.nama, d.username, d.password, d.role, d.sekolah, d.kelas, d.tglLahir, d.foto, d.nis, d.nisn, d.jk, d.tempatLahir, d.ayah, d.ibu, d.nik, d.nokk, d.alamat, d.rtrw, d.kodepos, d.desa, d.kecamatan, d.kabupaten, d.wali] 
+          });
         }
       } else if (mode === 'delete') {
         await turso.execute({ sql: "DELETE FROM Users WHERE ID = ? OR id = ?", args: [d.id, d.id] });
@@ -56,6 +55,7 @@ export async function POST(req) {
       const [role, , sekolah] = args;
       let sql = "SELECT * FROM Users";
       let pArgs = [];
+      // Jika guru, hanya tampilkan user (siswa & guru) di sekolahnya
       if (role === 'guru') {
           sql += " WHERE LOWER(TRIM(Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(sekolah)) = LOWER(TRIM(?))";
           pArgs.push(sekolah, sekolah);
@@ -65,7 +65,7 @@ export async function POST(req) {
     }
 
     // ==========================================
-    // 2. MANAJEMEN ABSENSI & RAPORT
+    // 2. MANAJEMEN ABSENSI (SISWA & GURU)
     // ==========================================
     if (action === 'adminSaveAbsenBatch') {
         const [records] = args; 
@@ -104,18 +104,6 @@ export async function POST(req) {
       const dateNow = new Date().toISOString().split('T')[0];
       await turso.execute({ sql: "INSERT INTO Attendance (AbsenID, SiswaID, Tanggal, Status) VALUES (?, ?, ?, 'Hadir')", args: ['ABS' + Date.now(), uid, dateNow] });
       return NextResponse.json({ status: 'success', msg: 'Berhasil melakukan absensi hari ini!' });
-    }
-
-    if (action === 'getRaportData') {
-        const [role, sekolah] = args;
-        let sqlUsers = "SELECT * FROM Users WHERE Role='siswa' OR role='siswa'";
-        let pArgs = [];
-        if (role === 'guru') { sqlUsers += " AND LOWER(TRIM(COALESCE(Sekolah, sekolah))) = LOWER(TRIM(?))"; pArgs.push(sekolah); }
-        const users = await turso.execute({ sql: sqlUsers, args: pArgs });
-        const results = await turso.execute("SELECT COALESCE(r.SiswaID, r.siswaid) as sID, COALESCE(r.TotalNilai, r.totalnilai) as tNilai, COALESCE(e.Mapel, e.mapel) as tMapel, COALESCE(e.Judul, e.judul) as tJudul FROM Results r JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey'");
-        const absen = await turso.execute("SELECT COALESCE(SiswaID, siswaid) as sID, COALESCE(Status, status) as sts, COUNT(*) as Jml FROM Attendance GROUP BY COALESCE(SiswaID, siswaid), COALESCE(Status, status)");
-
-        return NextResponse.json({ status: 'success', data: { users: users.rows, results: results.rows, absen: absen.rows } });
     }
 
     // ==========================================
@@ -179,7 +167,22 @@ export async function POST(req) {
     }
 
     // ==========================================
-    // 4. MANAJEMEN MATERI & UJIAN
+    // 4. API UNTUK RAPORT (MENGGUNAKAN COALESCE AGAR KEBAL)
+    // ==========================================
+    if (action === 'getRaportData') {
+        const [role, sekolah] = args;
+        let sqlUsers = "SELECT ID, id, Nama, nama, Kelas, kelas, Sekolah, sekolah, Username, username FROM Users WHERE Role='siswa' OR role='siswa'";
+        let pArgs = [];
+        if (role === 'guru') { sqlUsers += " AND LOWER(TRIM(COALESCE(Sekolah, sekolah))) = LOWER(TRIM(?))"; pArgs.push(sekolah); }
+        const users = await turso.execute({ sql: sqlUsers, args: pArgs });
+        const results = await turso.execute("SELECT COALESCE(r.SiswaID, r.siswaid) as sID, COALESCE(r.TotalNilai, r.totalnilai) as tNilai, COALESCE(e.Mapel, e.mapel) as tMapel, COALESCE(e.Judul, e.judul) as tJudul FROM Results r JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey'");
+        const absen = await turso.execute("SELECT COALESCE(SiswaID, siswaid) as sID, COALESCE(Status, status) as sts, COUNT(*) as Jml FROM Attendance GROUP BY COALESCE(SiswaID, siswaid), COALESCE(Status, status)");
+
+        return NextResponse.json({ status: 'success', data: { users: users.rows, results: results.rows, absen: absen.rows } });
+    }
+
+    // ==========================================
+    // 5. MANAJEMEN MATERI & UJIAN
     // ==========================================
     if (action === 'adminSaveMaterial') {
       const d = args[0]; const id = d.matId || ('MAT' + Date.now()); const dateNow = new Date().toISOString().split('T')[0];
@@ -204,7 +207,7 @@ export async function POST(req) {
       const d = args[0]; 
       // JIKA EDIT, PASTIKAN MENGGUNAKAN ID LAMA. JIKA BARU, BUAT ID BARU.
       const id = (d.examId && d.examId.trim() !== '') ? d.examId : ('EX' + Date.now());
-      const cek = await turso.execute({ sql: "SELECT ExamID FROM Exams WHERE ExamID = ? OR examid = ?", args: [id, id] });
+      const cek = await turso.execute({ sql: "SELECT * FROM Exams WHERE ExamID = ? OR examid = ?", args: [id, id] });
       if (cek.rows.length > 0) {
         await turso.execute({ sql: "UPDATE Exams SET Judul=?, Mapel=?, TargetKelas=?, Durasi=?, Token=?, StartDate=?, EndDate=?, LimitTries=?, ShowStats=?, RandomQ=?, AllowDownloadQ=?, AllowDownloadR=? WHERE ExamID=? OR examid=?", args: [d.judul, d.mapel, d.targetKelas, d.durasi, d.token || '', d.start, d.end, d.limit || 1, d.showStats, d.randomQ, d.dlSoal, d.dlHasil, id, id] });
       } else {
@@ -239,9 +242,12 @@ export async function POST(req) {
       await turso.execute({ sql: "DELETE FROM Questions WHERE QID = ? OR qid = ?", args: [args[0], args[0]] });
       return NextResponse.json({ status: 'success' });
     }
-
+if (action === 'adminUpdateResultScore') {
+       await turso.execute({ sql: "UPDATE Results SET TotalNilai = ? WHERE ResultID = ? OR resultid = ?", args: [args[1], args[0], args[0]] });
+       return NextResponse.json({ status: 'success', msg: 'Nilai berhasil diedit!' });
+    }
     // ==========================================
-    // 5. EKSEKUSI CBT & REKAP HASIL
+    // 6. EKSEKUSI CBT & REKAP HASIL
     // ==========================================
     if (action === 'getExamPack') {
       const eid = args[0]; const uid = args[1];
@@ -294,11 +300,6 @@ export async function POST(req) {
       if (role === 'guru') { sql += ` AND LOWER(TRIM(COALESCE(u.Sekolah, u.sekolah))) = LOWER(TRIM(?))`; pArgs.push(sekolah); }
       const results = await turso.execute({ sql: sql, args: pArgs });
       return NextResponse.json({ status: 'success', data: results.rows });
-    }
-
-    if (action === 'adminUpdateResult') {
-       await turso.execute({ sql: "UPDATE Results SET TotalNilai=?, Detail=? WHERE ResultID=? OR resultid=?", args: [args[1], args[2], args[0], args[0]] });
-       return NextResponse.json({ status: 'success', msg: 'Nilai diperbarui.' });
     }
 
     if (action === 'adminDeleteResult') {
