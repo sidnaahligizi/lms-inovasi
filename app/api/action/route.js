@@ -51,17 +51,48 @@ if (action === 'adminManageUser') {
       return NextResponse.json({ status: 'success', msg: 'Data User berhasil disimpan!' });
     }
 
+    // (GANTI BLOK API INI)
     if (action === 'getUserList') {
-      const [role, , sekolah] = args;
+      const [role, id, sekolah, kelas] = args; // Menangkap argumen tambahan 'kelas'
       let sql = "SELECT * FROM Users";
       let pArgs = [];
-      // Jika guru, hanya tampilkan user (siswa & guru) di sekolahnya
+      // Jika guru, hanya tampilkan user (siswa) di sekolah & kelasnya
       if (role === 'guru') {
-          sql += " WHERE LOWER(TRIM(Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(sekolah)) = LOWER(TRIM(?))";
-          pArgs.push(sekolah, sekolah);
+          sql += " WHERE (LOWER(TRIM(Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(sekolah)) = LOWER(TRIM(?))) AND (LOWER(TRIM(Kelas)) = LOWER(TRIM(?)) OR LOWER(TRIM(kelas)) = LOWER(TRIM(?)))";
+          pArgs.push(sekolah, sekolah, kelas, kelas);
       }
       const users = await turso.execute({ sql: sql, args: pArgs });
       return NextResponse.json({ status: 'success', data: users.rows });
+    }
+
+    // (GANTI BLOK API INI)
+    if (action === 'getAbsenRekap') {
+        const [role, sekolah, kelas] = args;
+        let sql = "SELECT a.AbsenID, a.absenid, a.Tanggal, a.tanggal, a.Status, a.status, u.Nama, u.nama, u.Kelas, u.kelas, u.Sekolah, u.sekolah, u.Role, u.role FROM Attendance a JOIN Users u ON a.SiswaID = u.ID OR a.siswaid = u.id";
+        let pArgs = [];
+        if (role === 'guru') { 
+            sql += " WHERE (LOWER(TRIM(u.Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(u.sekolah)) = LOWER(TRIM(?))) AND (LOWER(TRIM(u.Kelas)) = LOWER(TRIM(?)) OR LOWER(TRIM(u.kelas)) = LOWER(TRIM(?)))"; 
+            pArgs.push(sekolah, sekolah, kelas, kelas); 
+        }
+        sql += " ORDER BY COALESCE(a.Tanggal, a.tanggal) DESC";
+        const recap = await turso.execute({ sql, args: pArgs });
+        return NextResponse.json({ status: 'success', data: recap.rows });
+    }
+
+    // (GANTI BLOK API INI)
+    if (action === 'getRaportData') {
+        const [role, sekolah, kelas] = args;
+        let sqlUsers = "SELECT ID, id, Nama, nama, Kelas, kelas, Sekolah, sekolah, Username, username FROM Users WHERE Role='siswa' OR role='siswa'";
+        let pArgs = [];
+        if (role === 'guru') { 
+            sqlUsers += " AND LOWER(TRIM(COALESCE(Sekolah, sekolah))) = LOWER(TRIM(?)) AND LOWER(TRIM(COALESCE(Kelas, kelas))) = LOWER(TRIM(?))"; 
+            pArgs.push(sekolah, kelas); 
+        }
+        const users = await turso.execute({ sql: sqlUsers, args: pArgs });
+        const results = await turso.execute("SELECT COALESCE(r.SiswaID, r.siswaid) as sID, COALESCE(r.TotalNilai, r.totalnilai) as tNilai, COALESCE(e.Mapel, e.mapel) as tMapel, COALESCE(e.Judul, e.judul) as tJudul FROM Results r JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey'");
+        const absen = await turso.execute("SELECT COALESCE(SiswaID, siswaid) as sID, COALESCE(Status, status) as sts, COUNT(*) as Jml FROM Attendance GROUP BY COALESCE(SiswaID, siswaid), COALESCE(Status, status)");
+
+        return NextResponse.json({ status: 'success', data: { users: users.rows, results: results.rows, absen: absen.rows } });
     }
 
     // ==========================================
