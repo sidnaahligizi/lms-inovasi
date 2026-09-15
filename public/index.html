@@ -2504,7 +2504,6 @@ function handleResetCache() {
         }
     });
 }
-    // Fungsi untuk memunculkan modal dan mengisi data peserta saat tombol Edit diklik
 function editUser(str) {
     const d = JSON.parse(decodeURIComponent(str));
     $('#mu-id').val(d.ID || d.id);
@@ -2522,7 +2521,7 @@ function editUser(str) {
     $('#mu-tempatlahir').val(d.TempatLahir || d.tempatlahir || '');
     $('#mu-nik').val(d.NIK || d.nik || '');
     $('#mu-nokk').val(d.NoKK || d.nokk || '');
-    $('#mu-desa').val(d.DesaKelurahan || d.desakelurahan || '');
+    $('#mu-desa').val(d.DesaKelurahan || d.desakelurahan || ''); // Kelurahan mapping
     $('#mu-alamat').val(d.Alamat || d.alamat || '');
     $('#mu-rtrw').val(d.RTRW || d.rtrw || '');
     $('#mu-kecamatan').val(d.Kecamatan || d.kecamatan || '');
@@ -2537,12 +2536,12 @@ function editUser(str) {
 
 function saveUser() {
     const d = {
-        id: $('#mu-id').val(), nama: $('#mu-nama').val(), tglLahir: $('#mu-tgl').val(),
+        id: $('#mu-id').val(), nama: $('#mu-nama').val(), tglLahir: $('#mu-tgl').val() || '-',
         username: $('#mu-user').val(), password: $('#mu-pass').val(), role: $('#mu-role').val(),
         kelas: $('#mu-kelas').val(), sekolah: $('#mu-sekolah').val(), foto: $('#mu-foto-b64').val(),
         nis: $('#mu-nis').val(), nisn: $('#mu-nisn').val(), jk: $('#mu-jk').val(),
         tempatLahir: $('#mu-tempatlahir').val(), nik: $('#mu-nik').val(), nokk: $('#mu-nokk').val(),
-        desa: $('#mu-desa').val(), alamat: $('#mu-alamat').val(), rtrw: $('#mu-rtrw').val(),
+        kelurahan: $('#mu-desa').val(), alamat: $('#mu-alamat').val(), rtrw: $('#mu-rtrw').val(),
         kecamatan: $('#mu-kecamatan').val(), kabupaten: $('#mu-kabupaten').val(),
         kodepos: $('#mu-kodepos').val(), ayah: $('#mu-ayah').val(), ibu: $('#mu-ibu').val(), wali: $('#mu-wali').val()
     };
