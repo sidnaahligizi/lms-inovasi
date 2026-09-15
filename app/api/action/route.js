@@ -14,8 +14,8 @@ export async function POST(req) {
         for (let u of usersArr) {
             const id = 'U' + Date.now() + Math.floor(Math.random() * 10000);
             await turso.execute({ 
-                sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, nokk, alamat, rtrw, kodepos, desa, kecamatan, kabupaten, wali) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
-                args: [id, u.Nama||'-', u.Username||('user'+id), u.Password||'123456', String(u.Role||'siswa').toLowerCase(), u.Sekolah||'', u.Kelas||'', u.TglLahir||'', u.NIS||'', u.NISN||'', u.JenisKelamin||'L', u.TempatLahir||'', u.NamaAyah||'', u.NamaIbu||'', u.NIK||'', u.NoKK||'', u.Alamat||'', u.RTRW||'', u.KodePos||'', u.DesaKelurahan||'', u.Kecamatan||'', u.KabupatenKota||'', u.NamaWali||''] 
+                sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, nok_kk, alamat, rt_rw, kode_pos, desa, kecamatan, kabupaten, wali) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+                args: [id, u.Nama||'-', u.Username||('user'+id), u.Password||'123456', String(u.Role||'siswa').toLowerCase(), u.Sekolah||'', u.Kelas||'', u.TglLahir||'', u.NIS||'', u.NISN||'', u.JenisKelamin||'L', u.TempatLahir||'', u.NamaAyah||'', u.NamaIbu||'', u.NIK||'', u.nok_kk||'', u.Alamat||'', u.rt_rw||'', u.kode_pos||'', u.DesaKelurahan||'', u.Kecamatan||'', u.KabupatenKota||'', u.NamaWali||''] 
             });
         }
         return NextResponse.json({ status: 'success', msg: `${usersArr.length} data siswa berhasil diupload!` });
@@ -36,13 +36,13 @@ export async function POST(req) {
         if (cek.rows.length > 0) {
           // Menyesuaikan kolom dengan Turso DB (jk, tempat_lahir, ayah, ibu, nik, dll)
           await turso.execute({ 
-              sql: "UPDATE Users SET Nama=?, Username=?, Password=?, Role=?, Sekolah=?, Kelas=?, TglLahir=?, Foto=?, NIS=?, NISN=?, jk=?, tempat_lahir=?, ayah=?, ibu=?, nik=?, nokk=?, alamat=?, rtrw=?, kodepos=?, desa=?, kecamatan=?, kabupaten=?, wali=? WHERE ID=? OR id=?", 
-              args: [d.nama, d.username, d.password, d.role, d.sekolah, d.kelas, d.tglLahir, d.foto, d.nis, d.nisn, d.jk, d.tempatLahir, d.ayah, d.ibu, d.nik, d.nokk, d.alamat, d.rtrw, d.kodepos, d.desa, d.kecamatan, d.kabupaten, d.wali, id, id] 
+              sql: "UPDATE Users SET Nama=?, Username=?, Password=?, Role=?, Sekolah=?, Kelas=?, TglLahir=?, Foto=?, NIS=?, NISN=?, jk=?, tempat_lahir=?, ayah=?, ibu=?, nik=?, nok_kk=?, alamat=?, rt_rw=?, kode_pos=?, desa=?, kecamatan=?, kabupaten=?, wali=? WHERE ID=? OR id=?", 
+              args: [d.nama, d.username, d.password, d.role, d.sekolah, d.kelas, d.tglLahir, d.foto, d.nis, d.nisn, d.jk, d.tempatLahir, d.ayah, d.ibu, d.nik, d.nok_kk, d.alamat, d.rt_rw, d.kode_pos, d.desa, d.kecamatan, d.kabupaten, d.wali, id, id] 
           });
         } else {
           await turso.execute({ 
-              sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, Foto, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, nokk, alamat, rtrw, kodepos, desa, kecamatan, kabupaten, wali) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
-              args: [id, d.nama, d.username, d.password, d.role, d.sekolah, d.kelas, d.tglLahir, d.foto, d.nis, d.nisn, d.jk, d.tempatLahir, d.ayah, d.ibu, d.nik, d.nokk, d.alamat, d.rtrw, d.kodepos, d.desa, d.kecamatan, d.kabupaten, d.wali] 
+              sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, Foto, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, nok_kk, alamat, rt_rw, kode_pos, desa, kecamatan, kabupaten, wali) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
+              args: [id, d.nama, d.username, d.password, d.role, d.sekolah, d.kelas, d.tglLahir, d.foto, d.nis, d.nisn, d.jk, d.tempatLahir, d.ayah, d.ibu, d.nik, d.nok_kk, d.alamat, d.rt_rw, d.kode_pos, d.desa, d.kecamatan, d.kabupaten, d.wali] 
           });
         }
       } else if (mode === 'delete') {
