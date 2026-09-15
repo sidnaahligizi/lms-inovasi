@@ -66,20 +66,6 @@ if (action === 'adminManageUser') {
     }
 
     // (GANTI BLOK API INI)
-    if (action === 'getAbsenRekap') {
-        const [role, sekolah, kelas] = args;
-        let sql = "SELECT a.AbsenID, a.absenid, a.Tanggal, a.tanggal, a.Status, a.status, u.Nama, u.nama, u.Kelas, u.kelas, u.Sekolah, u.sekolah, u.Role, u.role FROM Attendance a JOIN Users u ON a.SiswaID = u.ID OR a.siswaid = u.id";
-        let pArgs = [];
-        if (role === 'guru') { 
-            sql += " WHERE (LOWER(TRIM(u.Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(u.sekolah)) = LOWER(TRIM(?))) AND (LOWER(TRIM(u.Kelas)) = LOWER(TRIM(?)) OR LOWER(TRIM(u.kelas)) = LOWER(TRIM(?)))"; 
-            pArgs.push(sekolah, sekolah, kelas, kelas); 
-        }
-        sql += " ORDER BY COALESCE(a.Tanggal, a.tanggal) DESC";
-        const recap = await turso.execute({ sql, args: pArgs });
-        return NextResponse.json({ status: 'success', data: recap.rows });
-    }
-
-    // (GANTI BLOK API INI)
     if (action === 'getRaportData') {
         const [role, sekolah, kelas] = args;
         let sqlUsers = "SELECT ID, id, Nama, nama, Kelas, kelas, Sekolah, sekolah, Username, username FROM Users WHERE Role='siswa' OR role='siswa'";
@@ -112,31 +98,51 @@ if (action === 'adminManageUser') {
         return NextResponse.json({ status: 'success' });
     }
 
+    // PERBAIKAN 1: Hapus semua getAbsenRekap yang ada, ganti dengan 1 blok ini
     if (action === 'getAbsenRekap') {
-        const [role, sekolah] = args;
+        const [role, sekolah, kelas] = args;
         let sql = "SELECT a.AbsenID, a.absenid, a.Tanggal, a.tanggal, a.Status, a.status, u.Nama, u.nama, u.Kelas, u.kelas, u.Sekolah, u.sekolah, u.Role, u.role FROM Attendance a JOIN Users u ON a.SiswaID = u.ID OR a.siswaid = u.id";
         let pArgs = [];
         if (role === 'guru') { 
-            sql += " WHERE LOWER(TRIM(u.Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(u.sekolah)) = LOWER(TRIM(?))"; 
-            pArgs.push(sekolah, sekolah); 
+            sql += " WHERE (LOWER(TRIM(u.Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(u.sekolah)) = LOWER(TRIM(?))) AND (LOWER(TRIM(u.Kelas)) = LOWER(TRIM(?)) OR LOWER(TRIM(u.kelas)) = LOWER(TRIM(?)))"; 
+            pArgs.push(sekolah, sekolah, kelas, kelas); 
         }
         sql += " ORDER BY COALESCE(a.Tanggal, a.tanggal) DESC";
         const recap = await turso.execute({ sql, args: pArgs });
         return NextResponse.json({ status: 'success', data: recap.rows });
     }
 
-    if (action === 'getSiswaAbsen') {
-        const history = await turso.execute({ sql: "SELECT * FROM Attendance WHERE SiswaID = ? OR siswaid = ? ORDER BY COALESCE(Tanggal, tanggal) DESC", args: [args[0], args[0]] });
-        return NextResponse.json({ status: 'success', data: history.rows });
+    // PERBAIKAN 2: Fungsi Notifikasi mendukung Upload Lampiran Foto/PDF
+    if (action === 'adminSaveNotif') {
+      const id = 'NOTIF' + Date.now();
+      // Format: text|||LAMPIRAN|||base64
+      let finalPesan = args[0];
+      if(args[2]) { finalPesan += '|||LAMPIRAN|||' + args[2]; }
+      
+      await turso.execute({ sql: "INSERT INTO Notifications (NotifID, Pesan, Tanggal, PembuatID) VALUES (?, ?, ?, ?)", args: [id, finalPesan, new Date().toISOString().split('T')[0], args[1]] });
+      return NextResponse.json({ status: 'success' });
+    }
+    if (action === 'adminDeleteNotif') {
+      await turso.execute({ sql: "DELETE FROM Notifications WHERE NotifID = ? OR notifid = ?", args: [args[0], args[0]] });
+      return NextResponse.json({ status: 'success' });
     }
 
-    if (action === 'submitAbsen') {
-      const uid = args[0];
-      const dateNow = new Date().toISOString().split('T')[0];
-      await turso.execute({ sql: "INSERT INTO Attendance (AbsenID, SiswaID, Tanggal, Status) VALUES (?, ?, ?, 'Hadir')", args: ['ABS' + Date.now(), uid, dateNow] });
-      return NextResponse.json({ status: 'success', msg: 'Berhasil melakukan absensi hari ini!' });
+    if (action === 'adminEditNotifText') {
+      // Mengupdate hanya Teks (Pesan) tanpa mengganti lampiran jika tidak diperlukan
+      const id = args[0];
+      const newText = args[1];
+      
+      // Ambil data notif lama untuk mempertahankan lampirannya jika ada
+      const oldNotif = await turso.execute({ sql: "SELECT * FROM Notifications WHERE NotifID = ? OR notifid = ?", args: [id, id] });
+      if (oldNotif.rows.length > 0) {
+         let currentMsg = oldNotif.rows[0].Pesan || oldNotif.rows[0].pesan;
+         let lampiran = currentMsg.includes('|||LAMPIRAN|||') ? '|||LAMPIRAN|||' + currentMsg.split('|||LAMPIRAN|||')[1] : '';
+         let finalMsg = newText + lampiran;
+         
+         await turso.execute({ sql: "UPDATE Notifications SET Pesan = ? WHERE NotifID = ? OR notifid = ?", args: [finalMsg, id, id] });
+      }
+      return NextResponse.json({ status: 'success' });
     }
-
     // ==========================================
     // 3. DASHBOARD & DATA UTAMA
     // ==========================================
