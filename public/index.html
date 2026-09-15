@@ -2653,16 +2653,6 @@ function loadPage(page) {
         return;
     }
     
-    if(page === 'admin-cetak-identitas') {
-        showLoad(true);
-        // Menambahkan user.Kelas untuk filter data
-        google.script.run.withSuccessHandler(r => { 
-            showLoad(false); 
-            if(r.status === 'success') { renderCetakIdentitas(r.data); } 
-        }).getUserList(user.Role, user.ID, user.Sekolah, user.Kelas);
-        return;
-    }
-    
     if(page === 'hasil-rekap') {
         $('#content-area').html('<div class="text-center p-5"><div class="spinner"></div></div>');
         google.script.run.withSuccessHandler(r => { 
@@ -2672,10 +2662,7 @@ function loadPage(page) {
         return;
     }
     
-    if(page === 'guru-monitoring') { 
-        renderMonitoring(); 
-        return; 
-    }
+    if(page === 'guru-monitoring') { renderMonitoring(); return; }
     
     if(page === 'admin-administrasi') {
         showLoad(true);
@@ -2716,20 +2703,24 @@ function loadPage(page) {
         return;
     }
     
-    // Default Call Dashboard / Siswa Ujian
+    // Di dalam fungsi loadPage(page)
+    if(page === 'admin-cetak-identitas') {
+        showLoad(true);
+        // Menambahkan user.Kelas untuk filter data
+        google.script.run.withSuccessHandler(r => { 
+            showLoad(false); 
+            if(r.status === 'success') { renderCetakIdentitas(r.data); } 
+        }).getUserList(user.Role, user.ID, user.Sekolah, user.Kelas);
+        return;
+    }
+    
     showLoad(true);
     google.script.run.withSuccessHandler(res => {
         showLoad(false);
-        if (res.status === 'success') { 
-            gData = res.data; 
-            renderContent(page); 
-            applyMathJax(); 
-        } else { 
-            Swal.fire('Error', res.msg, 'error'); 
-        }
+        if (res.status === 'success') { gData = res.data; renderContent(page); applyMathJax(); } 
+        else { Swal.fire('Error', res.msg, 'error'); }
     }).getDashboardData(user.Role, user.ID, user.Kelas, user.Sekolah);
 }
-
 // Filter sebelumnya tidak case-insensitive. Diperbaiki menggunakan String().toLowerCase()
 function renderCetakIdentitas(users) {
     let namaGuruText = String(user.Role).trim().toLowerCase() === 'guru' ? user.Nama : '';
