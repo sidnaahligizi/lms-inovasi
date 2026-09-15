@@ -14,11 +14,11 @@ export async function POST(req) {
         for (let u of usersArr) {
             const id = 'U' + Date.now() + Math.floor(Math.random() * 10000);
             await turso.execute({ 
-                sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
-                args: [id, u.Nama || '-', u.Username || ('user'+id), u.Password || '123456', String(u.Role || 'siswa').toLowerCase(), u.Sekolah || '', u.Kelas || '', u.TglLahir || ''] 
+                sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, NIS, NISN, JenisKelamin, TempatLahir, NamaAyah, NamaIbu, NIK, NoKK, Alamat, RTRW, KodePos, DesaKelurahan, Kecamatan, KabupatenKota, NamaWali) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+                args: [id, u.Nama||'-', u.Username||('user'+id), u.Password||'123456', String(u.Role||'siswa').toLowerCase(), u.Sekolah||'', u.Kelas||'', u.TglLahir||'', u.NIS||'', u.NISN||'', u.JenisKelamin||'L', u.TempatLahir||'', u.NamaAyah||'', u.NamaIbu||'', u.NIK||'', u.NoKK||'', u.Alamat||'', u.RTRW||'', u.KodePos||'', u.DesaKelurahan||'', u.Kecamatan||'', u.KabupatenKota||'', u.NamaWali||''] 
             });
         }
-        return NextResponse.json({ status: 'success', msg: `${usersArr.length} data siswa berhasil diupload!` });
+        return NextResponse.json({ status: 'success', msg: `${usersArr.length} data siswa berhasil diupload lengkap dengan identitas!` });
     }
 
 if (action === 'adminManageUser') {
