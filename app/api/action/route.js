@@ -14,11 +14,11 @@ export async function POST(req) {
         for (let u of usersArr) {
             const id = 'U' + Date.now() + Math.floor(Math.random() * 10000);
             await turso.execute({ 
-                sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, NIS, NISN, JenisKelamin, TempatLahir, NamaAyah, NamaIbu, NIK, NoKK, Alamat, RTRW, KodePos, DesaKelurahan, Kecamatan, KabupatenKota, NamaWali) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+                sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, nokk, alamat, rtrw, kodepos, desa, kecamatan, kabupaten, wali) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
                 args: [id, u.Nama||'-', u.Username||('user'+id), u.Password||'123456', String(u.Role||'siswa').toLowerCase(), u.Sekolah||'', u.Kelas||'', u.TglLahir||'', u.NIS||'', u.NISN||'', u.JenisKelamin||'L', u.TempatLahir||'', u.NamaAyah||'', u.NamaIbu||'', u.NIK||'', u.NoKK||'', u.Alamat||'', u.RTRW||'', u.KodePos||'', u.DesaKelurahan||'', u.Kecamatan||'', u.KabupatenKota||'', u.NamaWali||''] 
             });
         }
-        return NextResponse.json({ status: 'success', msg: `${usersArr.length} data siswa berhasil diupload lengkap dengan identitas!` });
+        return NextResponse.json({ status: 'success', msg: `${usersArr.length} data siswa berhasil diupload!` });
     }
 
     if (action === 'adminManageUser') {
@@ -34,13 +34,14 @@ export async function POST(req) {
 
         const cek = await turso.execute({ sql: "SELECT ID FROM Users WHERE ID = ? OR id = ?", args: [id, id] });
         if (cek.rows.length > 0) {
+          // Menyesuaikan kolom dengan Turso DB (jk, tempat_lahir, ayah, ibu, nik, dll)
           await turso.execute({ 
-              sql: "UPDATE Users SET Nama=?, Username=?, Password=?, Role=?, Sekolah=?, Kelas=?, TglLahir=?, Foto=?, NIS=?, NISN=?, JenisKelamin=?, TempatLahir=?, NamaAyah=?, NamaIbu=?, NIK=?, NoKK=?, Alamat=?, RTRW=?, KodePos=?, DesaKelurahan=?, Kecamatan=?, KabupatenKota=?, NamaWali=? WHERE ID=? OR id=?", 
+              sql: "UPDATE Users SET Nama=?, Username=?, Password=?, Role=?, Sekolah=?, Kelas=?, TglLahir=?, Foto=?, NIS=?, NISN=?, jk=?, tempat_lahir=?, ayah=?, ibu=?, nik=?, nokk=?, alamat=?, rtrw=?, kodepos=?, desa=?, kecamatan=?, kabupaten=?, wali=? WHERE ID=? OR id=?", 
               args: [d.nama, d.username, d.password, d.role, d.sekolah, d.kelas, d.tglLahir, d.foto, d.nis, d.nisn, d.jk, d.tempatLahir, d.ayah, d.ibu, d.nik, d.nokk, d.alamat, d.rtrw, d.kodepos, d.desa, d.kecamatan, d.kabupaten, d.wali, id, id] 
           });
         } else {
           await turso.execute({ 
-              sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, Foto, NIS, NISN, JenisKelamin, TempatLahir, NamaAyah, NamaIbu, NIK, NoKK, Alamat, RTRW, KodePos, DesaKelurahan, Kecamatan, KabupatenKota, NamaWali) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
+              sql: "INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, Foto, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, nokk, alamat, rtrw, kodepos, desa, kecamatan, kabupaten, wali) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", 
               args: [id, d.nama, d.username, d.password, d.role, d.sekolah, d.kelas, d.tglLahir, d.foto, d.nis, d.nisn, d.jk, d.tempatLahir, d.ayah, d.ibu, d.nik, d.nokk, d.alamat, d.rtrw, d.kodepos, d.desa, d.kecamatan, d.kabupaten, d.wali] 
           });
         }
@@ -51,7 +52,7 @@ export async function POST(req) {
     }
 
     if (action === 'getUserList') {
-      const [role, id, sekolah, kelas] = args; 
+      const [role, id, sekolah, kelas] = args;
       let sql = "SELECT * FROM Users";
       let pArgs = [];
       if (role === 'guru') {
@@ -126,7 +127,6 @@ export async function POST(req) {
       await turso.execute({ sql: "INSERT INTO Notifications (NotifID, Pesan, Tanggal, PembuatID) VALUES (?, ?, ?, ?)", args: [id, finalPesan, new Date().toISOString().split('T')[0], args[1]] });
       return NextResponse.json({ status: 'success' });
     }
-
     if (action === 'adminDeleteNotif') {
       await turso.execute({ sql: "DELETE FROM Notifications WHERE NotifID = ? OR notifid = ?", args: [args[0], args[0]] });
       return NextResponse.json({ status: 'success' });
