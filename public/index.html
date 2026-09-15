@@ -2750,7 +2750,11 @@ function renderCetakIdentitas(users) {
                     <label><input type="checkbox" class="form-check-input chk-cetak" value="Foto" checked> Foto Siswa</label>
                 </div>
             </div>
-            <div class="col-12 mt-3"><button class="btn btn-primary px-4 shadow-sm rounded-pill" onclick="prosesCetakIdentitas()"><i class="fas fa-print me-2"></i>Cetak Identitas PDF</button></div>
+            
+            <!-- Perbaikan Tombol -->
+            <div class="col-12 mt-4 text-center">
+                <button class="btn btn-primary btn-lg px-5 shadow rounded-pill" onclick="prosesCetakIdentitas()"><i class="fas fa-print me-2"></i>Cetak Identitas PDF</button>
+            </div>
         </div>`;
     $('#content-area').html(html);
 }
@@ -2760,7 +2764,6 @@ function prosesCetakIdentitas() {
     if(!val) return Swal.fire('Peringatan', 'Pilih siswa terlebih dahulu.', 'warning');
     let u = JSON.parse(decodeURIComponent(val));
     
-    // Ambil variabel isian
     let kepsek = $('#cetak-kepsek').val() || '...............................';
     let nipKepsek = $('#cetak-nip-kepsek').val() || '-';
     
@@ -2775,29 +2778,44 @@ function prosesCetakIdentitas() {
     let photoBlock = checkedFields.includes('Foto') ? `<img src="${u.Foto || 'https://via.placeholder.com/120'}" style="width:120px; height:160px; object-fit:cover; border: 3px solid #064e3b; margin-right: 20px;">` : '';
 
     let html = `
-    <div style="border: 2px solid #000; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-        <h3 style="text-align:center; text-decoration: underline; color: #064e3b;">IDENTITAS PESERTA DIDIK</h3><br>
-        <div style="display:flex; align-items:flex-start; margin-top:20px;">
-            ${photoBlock}
-            <table style="width:100%; font-size:15px; border-collapse: collapse;">${trs}</table>
+    <style>
+        .kop { display: none !important; }
+        .print-container { padding: 20px; font-family: Arial, sans-serif; }
+    </style>
+    <div class="print-container">
+        <!-- KOP SEKOLAH MUNCUL JUGA DI IDENTITAS -->
+        <div style="display: flex; align-items: center; border-bottom: 4px solid #064e3b; padding-bottom: 15px; margin-bottom: 25px;">
+            <img src="${user.LogoUrl || 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'}" style="width: 90px; height: 90px; margin-right: 20px;">
+            <div style="flex-grow: 1; text-align: center;">
+                <h2 style="margin:0; font-size: 24px; color:#064e3b; letter-spacing: 1px; font-weight: bold;">KELOMPOK KERJA GURU MADRASAH IBTIDAIYAH</h2>
+                <h3 style="margin:5px 0; font-size: 18px; color:#1e293b;">(KKGMI) KOTA SURABAYA 10</h3>
+                <p style="margin: 0; font-size: 12px; color: #64748b;">Aplikasi CBT & LMS Terpadu KKGMI Kota Surabaya 10</p>
+            </div>
         </div>
+
+        <div style="border: 2px solid #000; padding: 20px; border-radius: 10px; margin-bottom: 20px; page-break-inside: avoid;">
+            <h3 style="text-align:center; text-decoration: underline; color: #064e3b;">IDENTITAS PESERTA DIDIK</h3><br>
+            <div style="display:flex; align-items:flex-start; margin-top:20px;">
+                ${photoBlock}
+                <table style="width:100%; font-size:15px; border-collapse: collapse;">${trs}</table>
+            </div>
+        </div>
+        
+        <table style="width:100%; text-align:center; font-size:14px; margin-top: 80px; page-break-inside: avoid;">
+            <tr>
+                <td width="50%"></td>
+                <td width="50%">Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}<br>Kepala Sekolah</td>
+            </tr>
+            <tr><td height="100"></td><td></td></tr>
+            <tr>
+                <td></td>
+                <td><strong>${kepsek}</strong><br>NIP. ${nipKepsek}</td>
+            </tr>
+        </table>
     </div>
-    <table style="width:100%; text-align:center; font-size:14px; margin-top: 50px; page-break-inside: avoid;">
-        <tr>
-            <td width="50%"></td>
-            <td width="50%">Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}<br>Kepala Sekolah</td>
-        </tr>
-        <tr><td height="80"></td><td></td></tr>
-        <tr>
-            <td></td>
-            <td><strong>${kepsek}</strong><br>NIP. ${nipKepsek}</td>
-        </tr>
-    </table>
     `;
     downloadHTMLToPDF(`Identitas_${u.Nama.replace(/\s+/g,'_')}`, html);
 }
-
-// **HAPUS** fungsi "function prosesCetakIdentitas()" yang ada di baris setelah fungsi ini di file index.html Anda agar tidak double / macet.
 
 function handleUploadUsersExcel(e) {
     const file = e.target.files[0]; if(!file) return;
@@ -2827,6 +2845,21 @@ function handleUploadUsersExcel(e) {
     e.target.value = '';
 }
     
+function renderAbsenSiswa(data) {
+    let h = `<div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-clipboard-user me-2"></i>Catatan Kehadiran Anda</h5><button class="btn btn-success shadow-sm rounded-pill px-4 fw-bold" onclick="doAbsen()"><i class="fas fa-hand-paper me-2"></i> Isi Absen Hari Ini</button></div>`;
+    h += `<div class="card border-0 shadow-sm rounded-4 overflow-hidden"><div class="table-responsive"><table class="table table-hover align-middle mb-0 text-center"><thead class="table-light"><tr><th>Tanggal</th><th>Status Kehadiran</th></tr></thead><tbody>`;
+    if(!data || data.length === 0) {
+        h += `<tr><td colspan="2" class="text-muted py-4">Belum ada catatan kehadiran.</td></tr>`;
+    } else {
+        data.forEach(a => {
+            let sts = a.Status || a.status; let color = sts === 'Hadir' ? 'success' : (sts === 'Sakit' ? 'warning' : (sts === 'Izin' ? 'info' : 'danger'));
+            h += `<tr><td class="fw-medium">${a.Tanggal || a.tanggal}</td><td><span class="badge bg-${color} rounded-pill px-4 py-2">${sts}</span></td></tr>`;
+        });
+    }
+    h += `</tbody></table></div></div>`;
+    $('#content-area').html(h);
+}
+
 function renderContent(page) {
     const area = $('#content-area'); let h = '';
     const isGuru = String(user.Role).trim().toLowerCase() === 'guru';
@@ -2844,11 +2877,9 @@ function renderContent(page) {
                     </div>
                   </div>`;
             
-            // Menampilkan Histori Pengumuman
-            // Menampilkan Histori Pengumuman Spesifik (Filter via Javascript)
+            // Menampilkan Histori Pengumuman untuk Siswa
             if(gData.notifications && gData.notifications.length > 0) {
-                // Di database notifikasi, karena belum ada kolom 'kelas', kita asumsikan semua notif dari guru tersebut untuk muridnya.
-                h += `<div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-body p-4"><h5 class="fw-bold text-danger mb-3"><i class="fas fa-bullhorn me-2"></i>Pengumuman / Pemberitahuan</h5><ul class="list-group list-group-flush">`;
+                h += `<div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-body p-4"><h5 class="fw-bold text-danger mb-3"><i class="fas fa-bullhorn me-2"></i>Pengumuman dari Sekolah</h5><ul class="list-group list-group-flush">`;
                 gData.notifications.forEach(n => {
                     h += `<li class="list-group-item px-0 py-2 border-bottom-dashed"><div class="d-flex w-100 justify-content-between"><span class="fw-medium text-dark">${n.Pesan || n.pesan}</span><small class="text-muted"><i class="fas fa-clock me-1"></i>${n.Tanggal || n.tanggal}</small></div></li>`;
                 });
@@ -2891,10 +2922,30 @@ function renderContent(page) {
             }
             h += '</div>';
         } else {
+            // Tampilan Khusus Admin / Guru
             h += `<div class="row g-4 mb-4">
                     <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #0f5132, #15803d); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats?.totalSiswa || 0}</h1><p class="m-0 fs-5">Total Siswa Anda</p></div><i class="fas fa-users fa-4x opacity-50"></i></div></div></div>
                     <div class="col-md-6"><div class="card p-4 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #d4af37, #b48500); color: white;"><div class="d-flex justify-content-between align-items-center"><div><h1 class="fw-bold display-4 m-0">${gData.stats?.totalUjian || 0}</h1><p class="m-0 fs-5">Bank Soal Anda</p></div><i class="fas fa-folder-open fa-4x opacity-50"></i></div></div></div>
                  </div>`;
+                 
+            // Form Input Pengumuman untuk Admin/Guru
+            h += `<div class="card mb-4 border-0 shadow-sm rounded-4">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold text-danger mb-3"><i class="fas fa-bullhorn me-2"></i>Buat Pengumuman untuk Siswa</h5>
+                        <div class="input-group">
+                            <input type="text" id="in-notif" class="form-control bg-light border-0" placeholder="Ketik pengumuman di sini..." style="border-radius: 10px 0 0 10px;">
+                            <button class="btn btn-danger fw-bold px-4" onclick="kirimNotif()" style="border-radius: 0 10px 10px 0;"><i class="fas fa-paper-plane me-2"></i> Kirim Pengumuman</button>
+                        </div>
+                    </div>
+                  </div>`;
+                  
+            if(gData.notifications && gData.notifications.length > 0) {
+                h += `<div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-body p-4"><h6 class="fw-bold text-secondary mb-3">Pengumuman Terkirim:</h6><ul class="list-group list-group-flush">`;
+                gData.notifications.forEach(n => {
+                    h += `<li class="list-group-item px-0 py-2 border-bottom-dashed"><div class="d-flex w-100 justify-content-between"><span class="fw-medium text-dark">${n.Pesan || n.pesan}</span><small class="text-muted"><i class="fas fa-clock me-1"></i>${n.Tanggal || n.tanggal}</small></div></li>`;
+                });
+                h += `</ul></div></div>`;
+            }
         }
     }
 
@@ -2931,43 +2982,7 @@ function renderContent(page) {
         });
         h += '</div>';
     }
-else if (page === 'siswa-materi') {
-        h += `<h5 class="fw-bold mb-4 text-primary"><i class="fas fa-folder-open me-2"></i>Semua Ruang Belajar Anda</h5><div class="row g-4 mb-5">`;
-        
-        let mapels = {};
-        (gData.materials || []).forEach(m => {
-            let mp = m.Mapel || m.mapel || 'Lainnya';
-            if(!mapels[mp]) mapels[mp] = { mat: [], exm: [] };
-            mapels[mp].mat.push(m);
-        });
-        (gData.availableExams || []).forEach(e => {
-            let mp = e.Mapel || e.mapel || 'Lainnya';
-            if(!mapels[mp]) mapels[mp] = { mat: [], exm: [] };
-            mapels[mp].exm.push(e);
-        });
 
-        if(Object.keys(mapels).length === 0) { h += '<div class="col-12"><div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Belum ada kelas / mapel yang tersedia.</div></div>'; } 
-        else {
-            for (let mapelName in mapels) {
-                let totalMat = mapels[mapelName].mat.length;
-                let totalExm = mapels[mapelName].exm.length;
-                let safeMapel = mapelName.replace(/'/g, "\\'"); 
-                h += `<div class="col-md-6 col-lg-4">
-                        <div class="card h-100 shadow-sm border-0 rounded-4 transition-hover" style="cursor:pointer;" onclick="openMapelFolder('${safeMapel}')">
-                            <div class="card-body p-4 text-center">
-                                <div class="display-4 text-success mb-3"><i class="fas fa-folder-open"></i></div>
-                                <h5 class="fw-bold text-dark mb-3 text-uppercase">${mapelName}</h5>
-                                <div class="d-flex justify-content-center gap-2">
-                                    <span class="badge bg-light text-primary border"><i class="fas fa-book me-1"></i> ${totalMat} Materi</span>
-                                    <span class="badge bg-light text-danger border"><i class="fas fa-pencil-alt me-1"></i> ${totalExm} Ujian</span>
-                                </div>
-                            </div>
-                        </div>
-                      </div>`;
-            }
-        }
-        h += '</div>';
-    }
     else if (page === 'siswa-ujian') {
         h += `<div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-history me-2"></i>Riwayat Hasil & Tugas Anda</h5></div>`;
         if(!gData.history || gData.history.length === 0) {
@@ -3012,7 +3027,6 @@ else if (page === 'siswa-materi') {
         h += `<div class="alert alert-warning text-center py-4 rounded-4">Memuat Halaman...</div>`;
     }
 
-    // WAJIB ADA: Menerapkan HTML yang dibuat ke dalam wadah (container) di layar
     area.html(h);
 }
 
@@ -3249,61 +3263,80 @@ function printRaportSiswa() {
     let rataRata = mCount > 0 ? (totalAll / mCount).toFixed(2) : 0;
     let sNama = siswa.Nama||siswa.nama; let sKelas = siswa.Kelas||siswa.kelas; let sSekolah = siswa.Sekolah||siswa.sekolah; let sNis = siswa.Username||siswa.username;
     
+    // Perbaikan CSS agar tabel tidak terpotong (page-break-inside) 
+    // dan memaksa Kop tampil rapi
     let html = `
-    <style>.kop { display: none !important; }</style>
+    <style>
+        .kop { display: none !important; }
+        .print-container { padding: 20px; font-family: Arial, sans-serif; }
+        table { page-break-inside: avoid; } 
+        tr { page-break-inside: avoid; page-break-after: auto; }
+        .ttd-box { margin-top: 60px; page-break-inside: avoid; width: 100%; text-align: center; }
+    </style>
     
-    <div style="display: flex; align-items: center; border-bottom: 4px solid #064e3b; padding-bottom: 15px; margin-bottom: 25px;">
-        <img src="${user.LogoUrl || 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'}" style="width: 90px; height: 90px; margin-right: 20px;">
-        <div style="flex-grow: 1; text-align: center;">
-            <h2 style="margin:0; font-size: 24px; color:#064e3b; letter-spacing: 1px;">LAPORAN HASIL BELAJAR PESERTA DIDIK</h2>
-            <h3 style="margin:5px 0; font-size: 18px; color:#1e293b;">${sSekolah}</h3>
-            <p style="margin: 0; font-size: 12px; color: #64748b;">Aplikasi CBT & LMS Terpadu KKGMI Kota Surabaya 10</p>
+    <div class="print-container">
+        <!-- KOP SEKOLAH -->
+        <div style="display: flex; align-items: center; border-bottom: 4px solid #064e3b; padding-bottom: 15px; margin-bottom: 25px;">
+            <img src="${user.LogoUrl || 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'}" style="width: 90px; height: 90px; margin-right: 20px;">
+            <div style="flex-grow: 1; text-align: center;">
+                <h2 style="margin:0; font-size: 24px; color:#064e3b; letter-spacing: 1px; font-weight: bold;">LAPORAN HASIL BELAJAR PESERTA DIDIK</h2>
+                <h3 style="margin:5px 0; font-size: 18px; color:#1e293b;">${sSekolah}</h3>
+                <p style="margin: 0; font-size: 12px; color: #64748b;">Aplikasi CBT & LMS Terpadu KKGMI Kota Surabaya 10</p>
+            </div>
+        </div>
+
+        <!-- IDENTITAS SISWA -->
+        <table style="width:100%; margin-bottom:25px; font-size:14px; border: none;">
+            <tr><td width="20%" style="padding:4px;"><strong>Nama Peserta Didik</strong></td><td width="2%">:</td><td width="48%"><strong>${sNama}</strong></td><td width="15%"><strong>Kelas</strong></td><td width="2%">:</td><td width="13%"><strong>${sKelas}</strong></td></tr>
+            <tr><td style="padding:4px;"><strong>Nomor Induk / Username</strong></td><td>:</td><td>${sNis}</td><td><strong>Semester</strong></td><td>:</td><td>Ganjil</td></tr>
+            <tr><td style="padding:4px;"><strong>Nama Sekolah</strong></td><td>:</td><td>${sSekolah}</td><td><strong>Tahun Ajaran</strong></td><td>:</td><td>2026/2027</td></tr>
+        </table>
+        
+        <!-- NILAI AKADEMIK -->
+        <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">A. Capaian Akademik</h4>
+        <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom: 20px;" border="1">
+            <thead style="background-color:#064e3b; color: white;">
+                <tr><th width="5%" style="padding:10px;">No</th><th width="65%" style="padding:10px;">Mata Pelajaran (Rata-rata Evaluasi)</th><th width="15%" style="padding:10px;">Nilai Akhir</th><th width="15%" style="padding:10px;">Predikat</th></tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+            <tfoot>
+                <tr style="background-color:#f1f5f9;"><td colspan="2" style="text-align:right; padding:10px; font-weight:bold;">RATA - RATA NILAI</td><td style="text-align:center; padding:10px; font-weight:bold; color:#0f5132; font-size:16px;">${rataRata}</td><td style="background-color:#fff;"></td></tr>
+            </tfoot>
+        </table>
+
+        <!-- ABSENSI & CATATAN -->
+        <div style="page-break-inside: avoid;">
+            <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">B. Ketidakhadiran</h4>
+            <table style="width:40%; border-collapse:collapse; font-size:13px; margin-bottom: 20px;" border="1">
+                <tr><td style="padding:6px 10px;">Sakit</td><td style="padding:6px 10px; text-align:center;">${tSakit} Hari</td></tr>
+                <tr><td style="padding:6px 10px;">Izin</td><td style="padding:6px 10px; text-align:center;">${tIzin} Hari</td></tr>
+                <tr><td style="padding:6px 10px;">Tanpa Keterangan</td><td style="padding:6px 10px; text-align:center;">${tAlpa} Hari</td></tr>
+            </table>
+
+            <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">C. Catatan Wali Kelas</h4>
+            <div style="border: 1px solid #000; padding: 15px; height: 80px; margin-bottom: 20px;"></div>
+
+            <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">D. Tanggapan Orang Tua / Wali</h4>
+            <div style="border: 1px solid #000; padding: 15px; height: 80px; margin-bottom: 20px;"></div>
+        </div>
+
+        <!-- TANDA TANGAN (Lebih Bawah & Ditengah) -->
+        <div class="ttd-box">
+            <table style="width:100%; text-align:center; font-size:14px; border: none;">
+                <tr>
+                    <td width="33%">Mengetahui,<br>Orang Tua / Wali</td>
+                    <td width="34%">Mengetahui,<br>Kepala Sekolah</td>
+                    <td width="33%">Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}<br>Wali Kelas</td>
+                </tr>
+                <tr><td height="100"></td><td></td><td></td></tr>
+                <tr>
+                    <td><strong>( ..................................... )</strong></td>
+                    <td><strong>${kepsek}</strong><br>NIP. ${nipKepsek}</td>
+                    <td><strong>${wali}</strong><br>NIP. ${nipWali}</td>
+                </tr>
+            </table>
         </div>
     </div>
-
-    <table style="width:100%; margin-bottom:25px; font-size:14px;">
-        <tr><td width="20%" style="padding:4px;"><strong>Nama Peserta Didik</strong></td><td width="2%">:</td><td width="48%"><strong>${sNama}</strong></td><td width="15%"><strong>Kelas</strong></td><td width="2%">:</td><td width="13%"><strong>${sKelas}</strong></td></tr>
-        <tr><td style="padding:4px;"><strong>Nomor Induk / Username</strong></td><td>:</td><td>${sNis}</td><td><strong>Semester</strong></td><td>:</td><td>Ganjil</td></tr>
-        <tr><td style="padding:4px;"><strong>Nama Sekolah</strong></td><td>:</td><td>${sSekolah}</td><td><strong>Tahun Ajaran</strong></td><td>:</td><td>2026/2027</td></tr>
-    </table>
-    
-    <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">A. Capaian Akademik</h4>
-    <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom: 20px;" border="1">
-        <thead style="background-color:#064e3b; color: white;">
-            <tr><th width="5%" style="padding:10px;">No</th><th width="65%" style="padding:10px;">Mata Pelajaran (Rata-rata Evaluasi)</th><th width="15%" style="padding:10px;">Nilai Akhir</th><th width="15%" style="padding:10px;">Predikat</th></tr>
-        </thead>
-        <tbody>${tableRows}</tbody>
-        <tfoot>
-            <tr style="background-color:#f1f5f9;"><td colspan="2" style="text-align:right; padding:10px; font-weight:bold;">RATA - RATA NILAI</td><td style="text-align:center; padding:10px; font-weight:bold; color:#0f5132; font-size:16px;">${rataRata}</td><td style="background-color:#fff;"></td></tr>
-        </tfoot>
-    </table>
-
-    <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">B. Ketidakhadiran</h4>
-    <table style="width:40%; border-collapse:collapse; font-size:13px; margin-bottom: 20px;" border="1">
-        <tr><td style="padding:6px 10px;">Sakit</td><td style="padding:6px 10px; text-align:center;">${tSakit} Hari</td></tr>
-        <tr><td style="padding:6px 10px;">Izin</td><td style="padding:6px 10px; text-align:center;">${tIzin} Hari</td></tr>
-        <tr><td style="padding:6px 10px;">Tanpa Keterangan</td><td style="padding:6px 10px; text-align:center;">${tAlpa} Hari</td></tr>
-    </table>
-
-    <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">C. Catatan Wali Kelas</h4>
-    <div style="border: 1px solid #000; padding: 15px; height: 80px; margin-bottom: 20px;"></div>
-
-    <h4 style="margin-bottom:10px; color:#0f5132; background: #e2e8f0; padding: 8px;">D. Tanggapan Orang Tua / Wali</h4>
-    <div style="border: 1px solid #000; padding: 15px; height: 80px; margin-bottom: 40px;"></div>
-
-    <table style="width:100%; text-align:center; font-size:14px; margin-top: 30px; page-break-inside: avoid;">
-        <tr>
-            <td width="33%">Mengetahui,<br>Orang Tua / Wali</td>
-            <td width="34%">Mengetahui,<br>Kepala Sekolah</td>
-            <td width="33%">Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}<br>Wali Kelas</td>
-        </tr>
-        <tr><td height="80"></td><td></td><td></td></tr>
-        <tr>
-            <td><strong>( ..................................... )</strong></td>
-            <td><strong>${kepsek}</strong><br>NIP. ${nipKepsek}</td>
-            <td><strong>${wali}</strong><br>NIP. ${nipWali}</td>
-        </tr>
-    </table>
     `;
     
     downloadHTMLToPDF('Raport_' + sNama.replace(/\s+/g, '_'), html);
