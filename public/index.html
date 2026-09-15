@@ -2616,6 +2616,8 @@ function loadPage(page) {
 // Filter sebelumnya tidak case-insensitive. Diperbaiki menggunakan String().toLowerCase()
 window.dataSiswaCetak = [];
 
+window.dataSiswaCetak = [];
+
 function renderCetakIdentitas(users) {
     window.dataSiswaCetak = users.filter(u => String(u.Role || u.role).toLowerCase() === 'siswa');
     let html = `<div class="d-flex justify-content-between mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-id-badge me-2"></i> Cetak Identitas Siswa</h5></div>
@@ -2648,7 +2650,7 @@ function renderCetakIdentitas(users) {
 function prosesCetakIdentitas() {
     let val = $('#cetak-id-siswa').val();
     if(!val) return Swal.fire('Peringatan', 'Pilih siswa terlebih dahulu.', 'warning');
-    let u = window.dataSiswaCetak.find(x => (x.ID || x.id) === val);
+    let u = window.dataSiswaCetak.find(x => String(x.ID || x.id) === String(val));
     if(!u) return Swal.fire('Error', 'Data siswa tidak ditemukan di sistem.', 'error');
     
     let kepsek = $('#cetak-kepsek').val() || '...............................';
@@ -2657,9 +2659,9 @@ function prosesCetakIdentitas() {
 
     let trs = `<tr><td width="30%" style="padding: 8px;">Nama Lengkap</td><td width="2%">:</td><td><strong>${u.Nama || u.nama || '-'}</strong></td></tr>`;
     if(checkedFields.includes('NIS/NISN')) trs += `<tr><td style="padding: 8px;">NIS / NISN</td><td>:</td><td>${u.NIS || u.nis || '-'} / ${u.NISN || u.nisn || '-'}</td></tr>`;
-    if(checkedFields.includes('TTL')) trs += `<tr><td style="padding: 8px;">Tempat, Tgl Lahir</td><td>:</td><td>${u.TempatLahir || u.tempatlahir || '-'}, ${u.TglLahir || u.tgllahir || '-'}</td></tr>`;
-    if(checkedFields.includes('Orang Tua')) trs += `<tr><td style="padding: 8px;">Nama Ayah / Ibu</td><td>:</td><td>${u.NamaAyah || u.namaayah || '-'} / ${u.NamaIbu || u.namaibu || '-'}</td></tr>`;
-    if(checkedFields.includes('Alamat')) trs += `<tr><td style="padding: 8px;">Alamat Lengkap</td><td>:</td><td>${u.Alamat || u.alamat || '-'} RT/RW ${u.RTRW || u.rtrw || '-'}, ${u.DesaKelurahan || u.desakelurahan || '-'}, Kec. ${u.Kecamatan || u.kecamatan || '-'}, Kab. ${u.KabupatenKota || u.kabupatenkota || '-'}</td></tr>`;
+    if(checkedFields.includes('TTL')) trs += `<tr><td style="padding: 8px;">Tempat, Tgl Lahir</td><td>:</td><td>${u.TempatLahir || u.tempat_lahir || '-'}, ${u.TglLahir || u.tgllahir || '-'}</td></tr>`;
+    if(checkedFields.includes('Orang Tua')) trs += `<tr><td style="padding: 8px;">Nama Ayah / Ibu</td><td>:</td><td>${u.NamaAyah || u.ayah || '-'} / ${u.NamaIbu || u.ibu || '-'}</td></tr>`;
+    if(checkedFields.includes('Alamat')) trs += `<tr><td style="padding: 8px;">Alamat Lengkap</td><td>:</td><td>${u.Alamat || u.alamat || '-'} RT/RW ${u.RTRW || u.rt_rw || '-'}, ${u.DesaKelurahan || u.kelurahan || '-'}, Kec. ${u.Kecamatan || u.kecamatan || '-'}, Kab. ${u.KabupatenKota || u.kabupaten || '-'}</td></tr>`;
     
     let photoUrl = u.Foto || u.foto || 'https://via.placeholder.com/120';
     let photoBlock = checkedFields.includes('Foto') ? `<img src="${photoUrl}" style="width:120px; height:160px; object-fit:cover; border: 3px solid #064e3b; margin-right: 20px;">` : '';
@@ -2667,7 +2669,6 @@ function prosesCetakIdentitas() {
     let html = `
     <style>.kop { display: none !important; } .print-container { padding: 20px; font-family: Arial, sans-serif; }</style>
     <div class="print-container">
-        <!-- KOP SEKOLAH MUNCUL JUGA DI IDENTITAS -->
         <div style="display: flex; align-items: center; border-bottom: 4px solid #064e3b; padding-bottom: 15px; margin-bottom: 25px;">
             <img src="${user.LogoUrl || 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'}" style="width: 90px; height: 90px; margin-right: 20px;">
             <div style="flex-grow: 1; text-align: center;">
