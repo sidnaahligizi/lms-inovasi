@@ -2653,6 +2653,16 @@ function loadPage(page) {
         return;
     }
     
+    if(page === 'admin-cetak-identitas') {
+        showLoad(true);
+        // Menambahkan user.Kelas untuk filter data
+        google.script.run.withSuccessHandler(r => { 
+            showLoad(false); 
+            if(r.status === 'success') { renderCetakIdentitas(r.data); } 
+        }).getUserList(user.Role, user.ID, user.Sekolah, user.Kelas);
+        return;
+    }
+    
     if(page === 'hasil-rekap') {
         $('#content-area').html('<div class="text-center p-5"><div class="spinner"></div></div>');
         google.script.run.withSuccessHandler(r => { 
@@ -2662,7 +2672,10 @@ function loadPage(page) {
         return;
     }
     
-    if(page === 'guru-monitoring') { renderMonitoring(); return; }
+    if(page === 'guru-monitoring') { 
+        renderMonitoring(); 
+        return; 
+    }
     
     if(page === 'admin-administrasi') {
         showLoad(true);
@@ -2703,22 +2716,17 @@ function loadPage(page) {
         return;
     }
     
-    // Di dalam fungsi loadPage(page)
-    if(page === 'admin-cetak-identitas') {
-        showLoad(true);
-        // Menambahkan user.Kelas untuk filter data
-        google.script.run.withSuccessHandler(r => { 
-            showLoad(false); 
-            if(r.status === 'success') { renderCetakIdentitas(r.data); } 
-        }).getUserList(user.Role, user.ID, user.Sekolah, user.Kelas);
-        return;
-    }
-    
+    // Default Call Dashboard / Siswa Ujian
     showLoad(true);
     google.script.run.withSuccessHandler(res => {
         showLoad(false);
-        if (res.status === 'success') { gData = res.data; renderContent(page); applyMathJax(); } 
-        else { Swal.fire('Error', res.msg, 'error'); }
+        if (res.status === 'success') { 
+            gData = res.data; 
+            renderContent(page); 
+            applyMathJax(); 
+        } else { 
+            Swal.fire('Error', res.msg, 'error'); 
+        }
     }).getDashboardData(user.Role, user.ID, user.Kelas, user.Sekolah);
 }
 // Filter sebelumnya tidak case-insensitive. Diperbaiki menggunakan String().toLowerCase()
@@ -2868,7 +2876,7 @@ function renderContent(page) {
                     </div>
                   </div>`;
             
-            // PERBAIKAN: Menampilkan Histori Pengumuman
+            // Menampilkan Histori Pengumuman
             if(gData.notifications && gData.notifications.length > 0) {
                 h += `<div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-body p-4"><h5 class="fw-bold text-danger mb-3"><i class="fas fa-bullhorn me-2"></i>Pengumuman / Pemberitahuan</h5><ul class="list-group list-group-flush">`;
                 gData.notifications.forEach(n => {
@@ -2927,7 +2935,6 @@ function renderContent(page) {
             gData.materials.forEach(m => {
                 let mId = m.MatID || m.matid; let mJudul = m.Judul || m.judul; let mMapel = m.Mapel || m.mapel; let mKelas = m.TargetKelas || m.targetkelas; let mTipe = m.Tipe || m.tipe;
                 let icon = mTipe === 'pdf' ? 'fa-file-pdf text-danger' : (mTipe === 'youtube' ? 'fa-youtube text-danger' : 'fa-file-alt text-primary');
-                // PERBAIKAN: Menambahkan Tombol Edit
                 h += `<div class="col-md-6 col-lg-4"><div class="card h-100 shadow-sm border-0 rounded-4 p-4"><span class="badge bg-light text-dark border mb-3 w-auto align-self-start px-3 py-2 rounded-pill">${mMapel} | Kls ${mKelas}</span><h5 class="fw-bold mb-2">${mJudul}</h5><p class="small text-muted mb-4"><i class="fas ${icon} me-1"></i> Tipe: ${String(mTipe).toUpperCase()}</p>
                 <div class="mt-auto d-flex gap-2">
                     <button class="btn btn-success flex-fill rounded-pill fw-bold shadow-sm" onclick="lihatMateri('${encodeURIComponent(JSON.stringify(m))}')"><i class="fas fa-eye"></i> Buka</button>
@@ -2939,12 +2946,27 @@ function renderContent(page) {
         h += `</div>`;
     }
     
+    else if (page === 'admin-ujian') {
+        isSurveyMode = false;
+        h += `<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3"><h5 class="fw-bold text-primary mb-0"><i class="fas fa-folder-open me-2"></i>Daftar Bank Soal</h5><button class="btn btn-primary shadow-sm px-4 py-2 rounded-pill fw-bold" onclick="openExamModal()"><i class="fas fa-plus me-2"></i>Buat Evaluasi / Ujian Baru</button></div><div class="row g-4" id="admin-ujian-list">`;
+        if(!gData.exams || gData.exams.length === 0) h += `<div class="col-12"><div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Belum ada ujian yang Anda buat.</div></div>`;
+        (gData.exams||[]).forEach(e => {
+            let safeE = {
+                ExamID: e.ExamID || e.examid, Judul: e.Judul || e.judul, Mapel: e.Mapel || e.mapel, TargetKelas: e.TargetKelas || e.targetkelas,
+                Durasi: e.Durasi || e.durasi, Token: e.Token || e.token, StartDate: e.StartDate || e.startdate, EndDate: e.EndDate || e.enddate, Limit: e.LimitTries || e.limittries,
+                ShowStats: e.ShowStats || e.showstats, RandomQ: e.RandomQ || e.randomq, AllowDownloadQ: e.AllowDownloadQ || e.allowdownloadq, AllowDownloadR: e.AllowDownloadR || e.allowdownloadr
+            };
+            let actionButtons = `<button class="btn btn-sm btn-outline-dark flex-fill rounded-pill fw-bold" onclick="openExamModal('${encodeURIComponent(JSON.stringify(safeE))}')"><i class="fas fa-cog"></i> Edit</button> <button class="btn btn-sm btn-outline-primary flex-fill rounded-pill fw-bold" onclick="manageQ('${safeE.ExamID}')"><i class="fas fa-list"></i> Buat Soal</button> <button class="btn btn-sm btn-danger rounded-circle px-2" onclick="delExam('${safeE.ExamID}')"><i class="fas fa-trash"></i></button>`;
+            h += `<div class="col-md-6 col-xl-4 ujian-card"><div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden"><div class="card-body p-4"><span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm mb-3">${safeE.Mapel}</span><h5 class="fw-bold text-dark mb-1">${safeE.Judul}</h5><p class="small text-muted mb-4"><i class="fas fa-clock me-1"></i> ${safeE.Durasi} Menit | Kls: ${safeE.TargetKelas}</p><div class="d-flex gap-2 mt-auto">${actionButtons}</div></div></div></div>`;
+        });
+        h += '</div>';
+    }
+
     else if (page === 'siswa-ujian') {
         h += `<div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-history me-2"></i>Riwayat Hasil & Tugas Anda</h5></div>`;
         if(!gData.history || gData.history.length === 0) {
             h += `<div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Anda belum menyelesaikan ujian/tugas apa pun.</div>`;
         } else {
-            // Group by Mapel and Sort by Date Descending
             let historySorted = [...gData.history].sort((a,b) => new Date(b.WaktuSubmit) - new Date(a.WaktuSubmit));
             let grouped = {};
             historySorted.forEach(item => {
@@ -2979,6 +3001,14 @@ function renderContent(page) {
             h += `</div>`;
         }
     }
+    
+    else {
+        h += `<div class="alert alert-warning text-center py-4 rounded-4">Memuat Halaman...</div>`;
+    }
+
+    // WAJIB ADA: Menerapkan HTML yang dibuat ke dalam wadah (container) di layar
+    area.html(h);
+}
 
 // ===============================================
 // FUNGSI BARU: FOLDER MAPEL SISWA
