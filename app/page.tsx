@@ -145,18 +145,12 @@ export default function Page() {
                     </div>
                     
                     {/* Input Password */}
-                    <div className="form-floating mb-3 position-relative">
+                    <div className="form-floating mb-4 position-relative">
                         <input type={showPassword ? "text" : "password"} className="form-control bg-light border-0 shadow-sm" placeholder="Password" style={{ borderRadius: '12px' }} required value={password} onChange={(e) => setPassword(e.target.value)} />
                         <label className="text-muted"><i className="fas fa-lock me-2"></i>Password</label>
                         <button type="button" className="btn position-absolute top-50 end-0 translate-middle-y me-2 text-muted border-0 bg-transparent" onClick={() => setShowPassword(!showPassword)}>
                             <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                         </button>
-                    </div>
-
-                    {/* Input Tanggal Lahir */}
-                    <div className="form-floating mb-4">
-                        <input type="date" className="form-control bg-light border-0 shadow-sm" style={{ borderRadius: '12px' }} value={tglLahir} onChange={(e) => setTglLahir(e.target.value)} />
-                        <label className="text-muted"><i className="fas fa-calendar-alt me-2"></i>Tanggal Lahir <small className="text-danger">(Wajib Siswa)</small></label>
                     </div>
 
                     {/* Tombol Login */}
