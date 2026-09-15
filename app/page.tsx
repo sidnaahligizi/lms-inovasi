@@ -49,29 +49,30 @@ export default function Page() {
       <div style={{ fontFamily: "'Poppins', sans-serif", minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: "linear-gradient(135deg, #064e3b 0%, #15803d 50%, #d4af37 100%)", padding: '20px' }}>
         <div className="container" style={{ maxWidth: '1100px' }}>
           <div className="row g-4 align-items-center">
-            <div className="col-lg-7 text-white pe-lg-4 mb-4 mb-lg-0">
-              <h2 className="fw-bold mb-3">Portal LMS & CBT KKGMI</h2>
-              <p className="lead mb-4">Sistem Pembelajaran dan Ujian Berbasis Komputer resmi KKGMI Kota Surabaya 10.</p>
+            <div className="col-lg-7 text-white pe-lg-4 mb-4 mb-lg-0 text-center text-lg-start">
+              <h1 className="fw-bold mb-3 display-5">Selamat Datang di LMS Sekolah</h1>
+              <p className="lead mb-4 fw-light">Sistem Pembelajaran Jarak Jauh dan Ujian Berbasis Komputer (CBT) Terpadu KKGMI Kota Surabaya 10.</p>
               
-              <div className="bg-white text-dark p-4 rounded-4 shadow-sm mb-4" style={{ opacity: 0.95 }}>
-                <h5 className="fw-bold text-success mb-3"><i className="fas fa-list-check me-2"></i>Fitur Pembelajaran</h5>
-                <ol className="mb-0 small text-muted" style={{ paddingLeft: '1.2rem', lineHeight: '1.7' }}>
-                  <li><strong>Materi Belajar:</strong> Akses modul PDF, catatan teks, dan video YouTube yang diunggah Guru.</li>
-                  <li><strong>Absensi Harian:</strong> Jangan lupa melakukan absensi di menu yang tersedia.</li>
-                  <li><strong>Notifikasi:</strong> Cek dashboard utama untuk info terbaru dari sekolah/guru.</li>
+              <div className="bg-white text-dark p-4 rounded-4 shadow-sm mb-4 text-start" style={{ opacity: 0.95 }}>
+                <h5 className="fw-bold text-success mb-3"><i className="fas fa-layer-group me-2"></i>Ruang Belajar Interaktif</h5>
+                <ol className="mb-0 small text-muted" style={{ paddingLeft: '1.2rem', lineHeight: '1.8' }}>
+                  <li><strong>Modul Per Bab:</strong> Akses materi teks, dokumen PDF, dan video pembelajaran langsung dari Dashboard.</li>
+                  <li><strong>Rekap Kehadiran:</strong> Guru dapat memantau dan Siswa wajib mengisi absensi kelas harian.</li>
+                  <li><strong>Evaluasi & Raport:</strong> Mengerjakan Ulangan Harian/TKA dan unduh Raport Akademik.</li>
                 </ol>
               </div>
             </div>
 
             <div className="col-lg-5">
-              <div style={{ background: 'white', borderRadius: '20px', padding: '40px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ background: 'white', borderRadius: '24px', padding: '40px', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
                 <div className="text-center mb-4">
-                  <h4 className="fw-bold" style={{ color: '#064e3b' }}>MASUK PORTAL</h4>
+                  <h4 className="fw-bold mb-1" style={{ color: '#064e3b' }}>MASUK PORTAL</h4>
+                  <p className="small text-muted">Gunakan NIS/Username Anda</p>
                 </div>
                 <form onSubmit={handleLogin}>
                   <div className="form-floating mb-3">
                     <input type="text" className="form-control bg-light border-0" placeholder="User" required value={username} onChange={(e) => setUsername(e.target.value)} />
-                    <label>Username</label>
+                    <label>Username / NIS</label>
                   </div>
                   <div className="form-floating mb-3 position-relative">
                     <input type={showPassword ? "text" : "password"} className="form-control bg-light border-0" placeholder="Pass" required value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -82,8 +83,8 @@ export default function Page() {
                     <input type="date" className="form-control bg-light border-0" value={tglLahir} onChange={(e) => setTglLahir(e.target.value)} />
                     <label>Tanggal Lahir (Siswa Wajib Isi)</label>
                   </div>
-                  <button type="submit" disabled={loading} className="btn w-100 py-3 fw-bold shadow-sm text-white" style={{ background: 'linear-gradient(90deg, #064e3b 0%, #15803d 100%)', border: 'none', borderRadius: '10px' }}>
-                    {loading ? 'MEMPROSES...' : 'MASUK SEKARANG'}
+                  <button type="submit" disabled={loading} className="btn w-100 py-3 fw-bold shadow-sm text-white" style={{ background: 'linear-gradient(90deg, #064e3b 0%, #15803d 100%)', border: 'none', borderRadius: '12px' }}>
+                    {loading ? <><i className="fas fa-spinner fa-spin me-2"></i>MEMPROSES...</> : <><i className="fas fa-sign-in-alt me-2"></i>MASUK SEKARANG</>}
                   </button>
                 </form>
               </div>
