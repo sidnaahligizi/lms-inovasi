@@ -145,8 +145,20 @@ if (action === 'adminManageUser') {
       let output = { logo: 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq' };
       
       try {
-          const notifs = await turso.execute("SELECT * FROM Notifications ORDER BY COALESCE(Tanggal, tanggal) DESC LIMIT 5");
-          output.notifications = notifs.rows;
+          // Filter notif agar siswa hanya melihat notif dari guru sekolahnya. Admin lihat semua.
+let notifSql = "SELECT n.* FROM Notifications n";
+let notifArgs = [];
+
+if (role === 'siswa') {
+   notifSql += " JOIN Users u ON n.PembuatID = u.ID OR n.pembuatid = u.id WHERE LOWER(TRIM(u.Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(u.sekolah)) = LOWER(TRIM(?))";
+   notifArgs.push(sekolah, sekolah);
+} else if (role === 'guru') {
+   notifSql += " WHERE n.PembuatID = ? OR n.pembuatid = ?";
+   notifArgs.push(userId, userId);
+}
+notifSql += " ORDER BY COALESCE(n.Tanggal, n.tanggal) DESC LIMIT 5";
+const notifs = await turso.execute({ sql: notifSql, args: notifArgs });
+output.notifications = notifs.rows;
       } catch(e) { output.notifications = []; }
 
       if (role === 'admin' || role === 'guru') {
