@@ -2731,7 +2731,6 @@ function loadPage(page) {
 }
 // Filter sebelumnya tidak case-insensitive. Diperbaiki menggunakan String().toLowerCase()
 function renderCetakIdentitas(users) {
-    let namaGuruText = String(user.Role).trim().toLowerCase() === 'guru' ? user.Nama : '';
     let html = `<div class="d-flex justify-content-between mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-id-badge me-2"></i> Cetak Identitas Siswa</h5></div>
         <div class="row g-3 bg-white p-4 rounded-4 shadow-sm border mb-4">
             <div class="col-md-12"><label class="small fw-bold">Pilih Siswa</label><select id="cetak-id-siswa" class="form-select">
@@ -2741,8 +2740,6 @@ function renderCetakIdentitas(users) {
             
             <div class="col-md-6"><label class="small fw-bold">Nama Kepala Sekolah</label><input type="text" id="cetak-kepsek" class="form-control" placeholder="Nama Lengkap Kepala Sekolah..."></div>
             <div class="col-md-6"><label class="small fw-bold">NIP Kepala Sekolah</label><input type="text" id="cetak-nip-kepsek" class="form-control" placeholder="Kosongkan jika tidak ada..."></div>
-            <div class="col-md-6"><label class="small fw-bold">Nama Wali Kelas / Guru</label><input type="text" id="cetak-wali" class="form-control" placeholder="Nama Wali Kelas..." value="${namaGuruText}"></div>
-            <div class="col-md-6"><label class="small fw-bold">NIP Wali Kelas</label><input type="text" id="cetak-nip-wali" class="form-control" placeholder="Kosongkan jika tidak ada..."></div>
             
             <div class="col-12 mt-3"><h6 class="fw-bold">Pilih Data yang Dicetak:</h6>
                 <div class="d-flex flex-wrap gap-3">
@@ -2757,7 +2754,7 @@ function renderCetakIdentitas(users) {
         </div>`;
     $('#content-area').html(html);
 }
-    
+
 function prosesCetakIdentitas() {
     let val = $('#cetak-id-siswa').val();
     if(!val) return Swal.fire('Peringatan', 'Pilih siswa terlebih dahulu.', 'warning');
@@ -2766,8 +2763,6 @@ function prosesCetakIdentitas() {
     // Ambil variabel isian
     let kepsek = $('#cetak-kepsek').val() || '...............................';
     let nipKepsek = $('#cetak-nip-kepsek').val() || '-';
-    let wali = $('#cetak-wali').val() || '...............................';
-    let nipWali = $('#cetak-nip-wali').val() || '-';
     
     let checkedFields = $('.chk-cetak:checked').map(function(){ return $(this).val(); }).get();
 
@@ -2789,48 +2784,20 @@ function prosesCetakIdentitas() {
     </div>
     <table style="width:100%; text-align:center; font-size:14px; margin-top: 50px; page-break-inside: avoid;">
         <tr>
-            <td width="50%">Mengetahui,<br>Kepala Sekolah</td>
-            <td width="50%">Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}<br>Wali Kelas</td>
+            <td width="50%"></td>
+            <td width="50%">Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}<br>Kepala Sekolah</td>
         </tr>
         <tr><td height="80"></td><td></td></tr>
         <tr>
+            <td></td>
             <td><strong>${kepsek}</strong><br>NIP. ${nipKepsek}</td>
-            <td><strong>${wali}</strong><br>NIP. ${nipWali}</td>
         </tr>
     </table>
     `;
     downloadHTMLToPDF(`Identitas_${u.Nama.replace(/\s+/g,'_')}`, html);
 }
-    
-function prosesCetakIdentitas() {
-    let val = $('#cetak-id-siswa').val();
-    if(!val) return Swal.fire('Peringatan', 'Pilih siswa terlebih dahulu.', 'warning');
-    let u = JSON.parse(decodeURIComponent(val));
-    let kepsek = $('#cetak-kepsek').val() || '...............................';
-    let checkedFields = $('.chk-cetak:checked').map(function(){ return $(this).val(); }).get();
 
-    let trs = `<tr><td width="30%" style="padding: 8px;">Nama Lengkap</td><td width="2%">:</td><td><strong>${u.Nama || '-'}</strong></td></tr>`;
-    if(checkedFields.includes('NIS/NISN')) trs += `<tr><td style="padding: 8px;">NIS / NISN</td><td>:</td><td>${u.NIS || '-'} / ${u.NISN || '-'}</td></tr>`;
-    if(checkedFields.includes('TTL')) trs += `<tr><td style="padding: 8px;">Tempat, Tgl Lahir</td><td>:</td><td>${u.TempatLahir || '-'}, ${u.TglLahir || '-'}</td></tr>`;
-    if(checkedFields.includes('Orang Tua')) trs += `<tr><td style="padding: 8px;">Nama Ayah / Ibu</td><td>:</td><td>${u.NamaAyah || '-'} / ${u.NamaIbu || '-'}</td></tr>`;
-    if(checkedFields.includes('Alamat')) trs += `<tr><td style="padding: 8px;">Alamat Lengkap</td><td>:</td><td>${u.Alamat || '-'} RT/RW ${u.RTRW || '-'}, ${u.DesaKelurahan || '-'}, Kec. ${u.Kecamatan || '-'}, Kab. ${u.KabupatenKota || '-'}</td></tr>`;
-    
-    let photoBlock = checkedFields.includes('Foto') ? `<img src="${u.Foto || 'https://via.placeholder.com/120'}" style="width:120px; height:160px; object-fit:cover; border: 3px solid #064e3b; margin-right: 20px;">` : '';
-
-    let html = `
-    <div style="border: 2px solid #000; padding: 20px; border-radius: 10px;">
-        <h3 style="text-align:center; text-decoration: underline; color: #064e3b;">IDENTITAS PESERTA DIDIK</h3><br>
-        <div style="display:flex; align-items:flex-start; margin-top:20px;">
-            ${photoBlock}
-            <table style="width:100%; font-size:15px; border-collapse: collapse;">${trs}</table>
-        </div>
-        <div style="text-align:right; margin-top:50px;">
-            <p>Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}<br>Kepala Sekolah,</p>
-            <p style="margin-top: 80px;"><strong>${kepsek}</strong></p>
-        </div>
-    </div>`;
-    downloadHTMLToPDF(`Identitas_${u.Nama.replace(/\s+/g,'_')}`, html);
-}
+// **HAPUS** fungsi "function prosesCetakIdentitas()" yang ada di baris setelah fungsi ini di file index.html Anda agar tidak double / macet.
 
 function handleUploadUsersExcel(e) {
     const file = e.target.files[0]; if(!file) return;
@@ -2859,6 +2826,7 @@ function handleUploadUsersExcel(e) {
     reader.readAsBinaryString(file);
     e.target.value = '';
 }
+    
 function renderContent(page) {
     const area = $('#content-area'); let h = '';
     const isGuru = String(user.Role).trim().toLowerCase() === 'guru';
@@ -2877,7 +2845,9 @@ function renderContent(page) {
                   </div>`;
             
             // Menampilkan Histori Pengumuman
+            // Menampilkan Histori Pengumuman Spesifik (Filter via Javascript)
             if(gData.notifications && gData.notifications.length > 0) {
+                // Di database notifikasi, karena belum ada kolom 'kelas', kita asumsikan semua notif dari guru tersebut untuk muridnya.
                 h += `<div class="card mb-4 border-0 shadow-sm rounded-4"><div class="card-body p-4"><h5 class="fw-bold text-danger mb-3"><i class="fas fa-bullhorn me-2"></i>Pengumuman / Pemberitahuan</h5><ul class="list-group list-group-flush">`;
                 gData.notifications.forEach(n => {
                     h += `<li class="list-group-item px-0 py-2 border-bottom-dashed"><div class="d-flex w-100 justify-content-between"><span class="fw-medium text-dark">${n.Pesan || n.pesan}</span><small class="text-muted"><i class="fas fa-clock me-1"></i>${n.Tanggal || n.tanggal}</small></div></li>`;
@@ -2961,7 +2931,43 @@ function renderContent(page) {
         });
         h += '</div>';
     }
+else if (page === 'siswa-materi') {
+        h += `<h5 class="fw-bold mb-4 text-primary"><i class="fas fa-folder-open me-2"></i>Semua Ruang Belajar Anda</h5><div class="row g-4 mb-5">`;
+        
+        let mapels = {};
+        (gData.materials || []).forEach(m => {
+            let mp = m.Mapel || m.mapel || 'Lainnya';
+            if(!mapels[mp]) mapels[mp] = { mat: [], exm: [] };
+            mapels[mp].mat.push(m);
+        });
+        (gData.availableExams || []).forEach(e => {
+            let mp = e.Mapel || e.mapel || 'Lainnya';
+            if(!mapels[mp]) mapels[mp] = { mat: [], exm: [] };
+            mapels[mp].exm.push(e);
+        });
 
+        if(Object.keys(mapels).length === 0) { h += '<div class="col-12"><div class="alert alert-light border text-center py-5 rounded-4 shadow-sm text-muted">Belum ada kelas / mapel yang tersedia.</div></div>'; } 
+        else {
+            for (let mapelName in mapels) {
+                let totalMat = mapels[mapelName].mat.length;
+                let totalExm = mapels[mapelName].exm.length;
+                let safeMapel = mapelName.replace(/'/g, "\\'"); 
+                h += `<div class="col-md-6 col-lg-4">
+                        <div class="card h-100 shadow-sm border-0 rounded-4 transition-hover" style="cursor:pointer;" onclick="openMapelFolder('${safeMapel}')">
+                            <div class="card-body p-4 text-center">
+                                <div class="display-4 text-success mb-3"><i class="fas fa-folder-open"></i></div>
+                                <h5 class="fw-bold text-dark mb-3 text-uppercase">${mapelName}</h5>
+                                <div class="d-flex justify-content-center gap-2">
+                                    <span class="badge bg-light text-primary border"><i class="fas fa-book me-1"></i> ${totalMat} Materi</span>
+                                    <span class="badge bg-light text-danger border"><i class="fas fa-pencil-alt me-1"></i> ${totalExm} Ujian</span>
+                                </div>
+                            </div>
+                        </div>
+                      </div>`;
+            }
+        }
+        h += '</div>';
+    }
     else if (page === 'siswa-ujian') {
         h += `<div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-history me-2"></i>Riwayat Hasil & Tugas Anda</h5></div>`;
         if(!gData.history || gData.history.length === 0) {
@@ -3175,8 +3181,7 @@ let globalRaportData = {};
 function renderRaportMenu(data) {
     globalRaportData = data;
     let uniqueKelas = [...new Set(data.users.map(u => u.Kelas || u.kelas))].filter(Boolean).sort();
-    
-    // Guru bisa mengampu lebih dari 1 kelas (Bisa melihat dropdown multi kelas yang ada di sekolahnya)
+    let namaGuruText = String(user.Role).trim().toLowerCase() === 'guru' ? user.Nama : '';
     let optKelas = `<option value="">-- Pilih Kelas --</option>` + uniqueKelas.map(k => `<option value="${k}">${k}</option>`).join('');
 
     let h = `<div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-file-signature me-2"></i>Cetak Laporan Akademik (Raport)</h5></div>
@@ -3185,16 +3190,19 @@ function renderRaportMenu(data) {
                     <div class="col-md-4"><label class="small fw-bold text-muted mb-2">1. Pilih Kelas</label><select id="rap-kelas" class="form-select border border-secondary shadow-sm rounded-3" onchange="filterSiswaRaport()">${optKelas}</select></div>
                     <div class="col-md-6"><label class="small fw-bold text-muted mb-2">2. Pilih Nama Siswa</label><select id="rap-siswa" class="form-select border border-secondary shadow-sm rounded-3"><option value="">-- Pilih Kelas Terlebih Dahulu --</option></select></div>
                     <div class="col-md-2"><button class="btn btn-success w-100 py-2 fw-bold shadow-sm rounded-3" onclick="printRaportSiswa()"><i class="fas fa-print me-2"></i> Cetak PDF</button></div>
+                    
+                    <div class="col-12 mt-3 border-top pt-3">
+                        <h6 class="fw-bold mb-3">Identitas Penandatangan:</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6"><input type="text" id="rap-kepsek" class="form-control" placeholder="Nama Kepala Sekolah..."></div>
+                            <div class="col-md-6"><input type="text" id="rap-nip-kepsek" class="form-control" placeholder="NIP Kepala Sekolah..."></div>
+                            <div class="col-md-6"><input type="text" id="rap-wali" class="form-control" placeholder="Nama Wali Kelas..." value="${namaGuruText}"></div>
+                            <div class="col-md-6"><input type="text" id="rap-nip-wali" class="form-control" placeholder="NIP Wali Kelas..."></div>
+                        </div>
+                    </div>
                 </div>
              </div>`;
     $('#content-area').html(h);
-}
-
-function filterSiswaRaport() {
-    const kls = $('#rap-kelas').val();
-    let siswaFiltered = globalRaportData.users.filter(u => (u.Kelas || u.kelas) === kls);
-    let opts = `<option value="">-- Pilih Siswa yang Tersedia --</option>` + siswaFiltered.map(s => `<option value="${s.ID||s.id}">${s.Nama||s.nama}</option>`).join('');
-    $('#rap-siswa').html(opts);
 }
 
 function printRaportSiswa() {
@@ -3204,6 +3212,12 @@ function printRaportSiswa() {
     const siswa = globalRaportData.users.find(u => (u.ID||u.id) === sid);
     const absensiSiswa = globalRaportData.absen.filter(a => (a.sID||a.sid) === sid);
     
+    // Ambil variabel TTD
+    let kepsek = $('#rap-kepsek').val() || '...............................';
+    let nipKepsek = $('#rap-nip-kepsek').val() || '-';
+    let wali = $('#rap-wali').val() || '...............................';
+    let nipWali = $('#rap-nip-wali').val() || '-';
+    
     let tHadir = 0, tSakit = 0, tIzin = 0, tAlpa = 0;
     absensiSiswa.forEach(a => {
         let sts = a.sts || a.Status || a.status; let jml = a.Jml || a.jml;
@@ -3211,8 +3225,6 @@ function printRaportSiswa() {
     });
 
     const nilaiSiswa = globalRaportData.results.filter(r => (r.sID||r.sid) === sid);
-    
-    // Grouping & Averaging Nilai per Mata Pelajaran (Mapel)
     let mapelAgg = {};
     nilaiSiswa.forEach(n => {
         let m = n.tMapel || n.tmapel;
@@ -3226,7 +3238,6 @@ function printRaportSiswa() {
         tableRows = `<tr><td colspan="4" style="text-align:center; padding:15px; color:#64748b;">Siswa belum menyelesaikan ujian TKA apa pun.</td></tr>`;
     } else {
         let i = 1;
-        // Generate list kelompok mata pelajaran dinamis
         for(let m in mapelAgg) {
             let avg = Math.round(mapelAgg[m].total / mapelAgg[m].count);
             totalAll += avg; mCount++;
@@ -3239,7 +3250,7 @@ function printRaportSiswa() {
     let sNama = siswa.Nama||siswa.nama; let sKelas = siswa.Kelas||siswa.kelas; let sSekolah = siswa.Sekolah||siswa.sekolah; let sNis = siswa.Username||siswa.username;
     
     let html = `
-    <style>.kop { display: none !important; }</style> <!-- HACK: Menyembunyikan double Kop dari template awal -->
+    <style>.kop { display: none !important; }</style>
     
     <div style="display: flex; align-items: center; border-bottom: 4px solid #064e3b; padding-bottom: 15px; margin-bottom: 25px;">
         <img src="${user.LogoUrl || 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'}" style="width: 90px; height: 90px; margin-right: 20px;">
@@ -3283,20 +3294,29 @@ function printRaportSiswa() {
     <table style="width:100%; text-align:center; font-size:14px; margin-top: 30px; page-break-inside: avoid;">
         <tr>
             <td width="33%">Mengetahui,<br>Orang Tua / Wali</td>
-            <td width="34%"></td>
+            <td width="34%">Mengetahui,<br>Kepala Sekolah</td>
             <td width="33%">Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}<br>Wali Kelas</td>
         </tr>
         <tr><td height="80"></td><td></td><td></td></tr>
         <tr>
             <td><strong>( ..................................... )</strong></td>
-            <td>Mengetahui,<br>Kepala Sekolah<br><br><br><br><br><strong>( ..................................... )</strong></td>
-            <td><strong>${user.Nama}</strong></td>
+            <td><strong>${kepsek}</strong><br>NIP. ${nipKepsek}</td>
+            <td><strong>${wali}</strong><br>NIP. ${nipWali}</td>
         </tr>
     </table>
     `;
     
     downloadHTMLToPDF('Raport_' + sNama.replace(/\s+/g, '_'), html);
 }
+
+function filterSiswaRaport() {
+    const kls = $('#rap-kelas').val();
+    let siswaFiltered = globalRaportData.users.filter(u => (u.Kelas || u.kelas) === kls);
+    let opts = `<option value="">-- Pilih Siswa yang Tersedia --</option>` + siswaFiltered.map(s => `<option value="${s.ID||s.id}">${s.Nama||s.nama}</option>`).join('');
+    $('#rap-siswa').html(opts);
+}
+
+
 </script>
 </body>
 </html>
