@@ -13,48 +13,62 @@ export async function POST(req) {
         const usersArr = args[0];
         for (let u of usersArr) {
             const id = 'U' + Date.now() + Math.floor(Math.random() * 10000);
+            
             const safeData = [
-                id, u.Nama||'-', u.Username||('user'+id), u.Password||'123456', String(u.Role||'siswa').toLowerCase(), u.Sekolah||'-', u.Kelas||'-', u.TglLahir||'-', u.NIS||'-', u.NISN||'-', u.JenisKelamin||u.jk||'L', u.TempatLahir||u.tempat_lahir||'-', u.NamaAyah||u.ayah||'-', u.NamaIbu||u.ibu||'-', u.NIK||u.nik||'-', u.NoKK||u.no_kk||'-', u.Alamat||u.alamat||'-', u.RTRW||u.rt_rw||'-', u.KodePos||u.kode_pos||'-', u.DesaKelurahan||u.kelurahan||'-', u.Kecamatan||u.kecamatan||'-', u.KabupatenKota||u.kabupaten||'-', u.NamaWali||u.wali||'-', u.AktaKelahiran||u.akta_kelahiran||'-',
-                u.Agama||'-', u.AnakKe||'-', u.StatusKeluarga||'-', u.TeleponSiswa||'-', u.DiterimaKelas||'-', u.DiterimaTanggal||'-', u.DiterimaSemester||'-', u.AlamatSekolahAsal||'-', u.IjazahTahun||'-', u.IjazahNomor||'-', u.SKHUNTahun||'-', u.SKHUNNomor||'-', u.TeleponOrtu||'-', u.KerjaAyah||'-', u.KerjaIbu||'-', u.AlamatWali||'-', u.KerjaWali||'-'
+                id, u.Nama||'-', u.Username||('user'+id), u.Password||'123456', 
+                String(u.Role||'siswa').toLowerCase(), u.Sekolah||'-', u.Kelas||'-', u.TglLahir||'-', 
+                u.NIS||'-', u.NISN||'-', u.JenisKelamin||u.jk||'L', u.TempatLahir||u.tempat_lahir||'-', 
+                u.NamaAyah||u.ayah||'-', u.NamaIbu||u.ibu||'-', u.NIK||u.nik||'-', u.NoKK||u.no_kk||'-', 
+                u.Alamat||u.alamat||'-', u.RTRW||u.rt_rw||'-', u.KodePos||u.kode_pos||'-', 
+                u.DesaKelurahan||u.kelurahan||'-', u.Kecamatan||u.kecamatan||'-', 
+                u.KabupatenKota||u.kabupaten||'-', u.NamaWali||u.wali||'-', u.AktaKelahiran||u.akta_kelahiran||'-',
+                u.Agama||'-', u.AnakKe||'-', u.StatusKeluarga||'-', u.TeleponSiswa||'-',
+                u.DiterimaKelas||'-', u.DiterimaTanggal||'-', u.DiterimaSemester||'-', 
+                u.AlamatSekolahAsal||'-', u.IjazahTahun||'-', u.IjazahNomor||'-', 
+                u.SKHUNTahun||'-', u.SKHUNNomor||'-', u.AlamatOrtu||'-', u.TeleponOrtu||'-', 
+                u.KerjaAyah||'-', u.KerjaIbu||'-', u.AlamatWali||'-', u.KerjaWali||'-'
             ];
+
             await turso.execute({ 
-                sql: `INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, no_kk, alamat, rt_rw, kode_pos, kelurahan, kecamatan, kabupaten, wali, akta_kelahiran, agama, anak_ke, status_keluarga, telepon_siswa, diterima_kelas, diterima_tanggal, diterima_semester, alamat_sekolah_asal, ijazah_tahun, ijazah_nomor, skhun_tahun, skhun_nomor, telepon_ortu, kerja_ayah, kerja_ibu, alamat_wali, kerja_wali) VALUES (${Array(41).fill('?').join(',')})`, 
+                sql: `INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, no_kk, alamat, rt_rw, kode_pos, kelurahan, kecamatan, kabupaten, wali, akta_kelahiran, agama, anak_ke, status_keluarga, telepon_siswa, diterima_kelas, diterima_tanggal, diterima_semester, alamat_sekolah_asal, ijazah_tahun, ijazah_nomor, skhun_tahun, skhun_nomor, alamat_ortu, telepon_ortu, kerja_ayah, kerja_ibu, alamat_wali, kerja_wali) VALUES (${Array(42).fill('?').join(',')})`, 
                 args: safeData 
             });
         }
-        return NextResponse.json({ status: 'success', msg: `${usersArr.length} data siswa berhasil diupload lengkap!` });
+        return NextResponse.json({ status: 'success', msg: `${usersArr.length} data siswa berhasil diupload lengkap dengan identitas!` });
     }
 
     if (action === 'adminManageUser') {
       const mode = args[0]; const d = args[1] || {};
       if (mode === 'save') {
         const id = d.id || ('U' + Date.now());
+        
         if(d.nisn && d.nisn !== '-' && d.nisn !== '') {
             const cekDuplicate = await turso.execute({ sql: "SELECT ID FROM Users WHERE (NISN = ? OR nisn = ?) AND (ID != ? AND id != ?)", args: [d.nisn, d.nisn, id, id] });
             if(cekDuplicate.rows.length > 0) return NextResponse.json({ status: 'error', msg: 'NISN sudah terdaftar pada akun lain!' });
         }
+
         const cek = await turso.execute({ sql: "SELECT ID FROM Users WHERE ID = ? OR id = ?", args: [id, id] });
         
         const safeArgs = [
             d.nama||'-', d.username||('user'+id), d.password||'123456', String(d.role||'siswa').toLowerCase(), d.sekolah||'-', d.kelas||'-', d.tglLahir||'-', d.foto||'', d.nis||'-', d.nisn||'-', d.jk||'L', d.tempatLahir||'-', d.ayah||'-', d.ibu||'-', d.nik||'-', d.nokk||'-', d.alamat||'-', d.rtrw||'-', d.kodepos||'-', d.kelurahan||'-', d.kecamatan||'-', d.kabupaten||'-', d.wali||'-', d.akta||'-',
-            d.agama||'-', d.anak_ke||'-', d.status_keluarga||'-', d.telepon_siswa||'-', d.diterima_kelas||'-', d.diterima_tanggal||'-', d.diterima_semester||'-', d.alamat_sekolah_asal||'-', d.ijazah_tahun||'-', d.ijazah_nomor||'-', d.skhun_tahun||'-', d.skhun_nomor||'-', d.telepon_ortu||'-', d.kerja_ayah||'-', d.kerja_ibu||'-', d.alamat_wali||'-', d.kerja_wali||'-'
+            d.agama||'-', d.anak_ke||'-', d.status_keluarga||'-', d.telepon_siswa||'-', d.diterima_kelas||'-', d.diterima_tanggal||'-', d.diterima_semester||'-', d.alamat_sekolah_asal||'-', d.ijazah_tahun||'-', d.ijazah_nomor||'-', d.skhun_tahun||'-', d.skhun_nomor||'-', d.alamat_ortu||'-', d.telepon_ortu||'-', d.kerja_ayah||'-', d.kerja_ibu||'-', d.alamat_wali||'-', d.kerja_wali||'-'
         ];
 
         if (cek.rows.length > 0) {
           await turso.execute({ 
-              sql: `UPDATE Users SET Nama=?, Username=?, Password=?, Role=?, Sekolah=?, Kelas=?, TglLahir=?, Foto=?, NIS=?, NISN=?, jk=?, tempat_lahir=?, ayah=?, ibu=?, nik=?, no_kk=?, alamat=?, rt_rw=?, kode_pos=?, kelurahan=?, kecamatan=?, kabupaten=?, wali=?, akta_kelahiran=?, agama=?, anak_ke=?, status_keluarga=?, telepon_siswa=?, diterima_kelas=?, diterima_tanggal=?, diterima_semester=?, alamat_sekolah_asal=?, ijazah_tahun=?, ijazah_nomor=?, skhun_tahun=?, skhun_nomor=?, telepon_ortu=?, kerja_ayah=?, kerja_ibu=?, alamat_wali=?, kerja_wali=? WHERE ID=? OR id=?`, 
+              sql: `UPDATE Users SET Nama=?, Username=?, Password=?, Role=?, Sekolah=?, Kelas=?, TglLahir=?, Foto=?, NIS=?, NISN=?, jk=?, tempat_lahir=?, ayah=?, ibu=?, nik=?, no_kk=?, alamat=?, rt_rw=?, kode_pos=?, kelurahan=?, kecamatan=?, kabupaten=?, wali=?, akta_kelahiran=?, agama=?, anak_ke=?, status_keluarga=?, telepon_siswa=?, diterima_kelas=?, diterima_tanggal=?, diterima_semester=?, alamat_sekolah_asal=?, ijazah_tahun=?, ijazah_nomor=?, skhun_tahun=?, skhun_nomor=?, alamat_ortu=?, telepon_ortu=?, kerja_ayah=?, kerja_ibu=?, alamat_wali=?, kerja_wali=? WHERE ID=? OR id=?`, 
               args: [...safeArgs, id, id] 
           });
         } else {
           await turso.execute({ 
-              sql: `INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, Foto, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, no_kk, alamat, rt_rw, kode_pos, kelurahan, kecamatan, kabupaten, wali, akta_kelahiran, agama, anak_ke, status_keluarga, telepon_siswa, diterima_kelas, diterima_tanggal, diterima_semester, alamat_sekolah_asal, ijazah_tahun, ijazah_nomor, skhun_tahun, skhun_nomor, telepon_ortu, kerja_ayah, kerja_ibu, alamat_wali, kerja_wali) VALUES (?,${Array(41).fill('?').join(',')})`, 
+              sql: `INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, Foto, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, no_kk, alamat, rt_rw, kode_pos, kelurahan, kecamatan, kabupaten, wali, akta_kelahiran, agama, anak_ke, status_keluarga, telepon_siswa, diterima_kelas, diterima_tanggal, diterima_semester, alamat_sekolah_asal, ijazah_tahun, ijazah_nomor, skhun_tahun, skhun_nomor, alamat_ortu, telepon_ortu, kerja_ayah, kerja_ibu, alamat_wali, kerja_wali) VALUES (?,${Array(42).fill('?').join(',')})`, 
               args: [id, ...safeArgs] 
           });
         }
       } else if (mode === 'delete') {
         await turso.execute({ sql: "DELETE FROM Users WHERE ID = ? OR id = ?", args: [d.id, d.id] });
       }
-      return NextResponse.json({ status: 'success', msg: 'Data berhasil disimpan!' });
+      return NextResponse.json({ status: 'success', msg: 'Data User berhasil disimpan!' });
     }
 
     if (action === 'getUserList') {
@@ -80,6 +94,7 @@ export async function POST(req) {
         const users = await turso.execute({ sql: sqlUsers, args: pArgs });
         const results = await turso.execute("SELECT COALESCE(r.SiswaID, r.siswaid) as sID, COALESCE(r.TotalNilai, r.totalnilai) as tNilai, COALESCE(e.Mapel, e.mapel) as tMapel, COALESCE(e.Judul, e.judul) as tJudul FROM Results r JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey'");
         const absen = await turso.execute("SELECT COALESCE(SiswaID, siswaid) as sID, COALESCE(Status, status) as sts, COUNT(*) as Jml FROM Attendance GROUP BY COALESCE(SiswaID, siswaid), COALESCE(Status, status)");
+
         return NextResponse.json({ status: 'success', data: { users: users.rows, results: results.rows, absen: absen.rows } });
     }
 
