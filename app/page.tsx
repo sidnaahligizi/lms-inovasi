@@ -59,16 +59,16 @@ export default function Page() {
             <div className="position-relative" style={{ zIndex: 2 }}>
                 {/* Header Logo & Judul */}
                 <div className="d-flex align-items-center mb-5">
-                    <img src="https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq" alt="Logo KKGMI" className="bg-white rounded-circle p-1 shadow-lg me-3" width="80" height="80" style={{ objectFit: 'contain' }} />
+                    <img src="https://lh3.googleusercontent.com/d/1aWHmp6kNKwTYkwEMqVg34_ofiWRkymFe" alt="Logo KKGMI" className="bg-white rounded-circle p-1 shadow-lg me-3" width="80" height="80" style={{ objectFit: 'contain' }} />
                     <div>
                         <h4 className="fw-bold mb-0 text-warning" style={{ letterSpacing: '1px' }}>PORTAL LMS & CBT</h4>
-                        <p className="mb-0 fs-6 opacity-75">Kelompok Kerja Guru Madrasah Ibtidaiyah</p>
+                        <p className="mb-0 fs-6 opacity-75">LMS BELAJAR INOVASI</p>
                     </div>
                 </div>
 
                 {/* Deskripsi Utama */}
                 <h1 className="fw-bold mb-4" style={{ fontSize: '3rem', lineHeight: '1.2' }}>
-                    Sistem Belajar Digital <br/><span className="text-warning">KKGMI Surabaya 10</span>
+                    Sistem Belajar Digital <br/><span className="text-warning">LMS BELAJAR INOVASI</span>
                 </h1>
                 <p className="lead opacity-75 mb-5 w-lg-85" style={{ fontSize: '1.1rem', lineHeight: '1.8' }}>
                     Platform pendidikan terpadu yang dirancang khusus untuk memfasilitasi proses belajar mengajar secara interaktif, pelaksanaan ujian berbasis komputer yang jujur dan akurat, serta pemantauan rekam jejak akademik peserta didik.
@@ -125,7 +125,7 @@ export default function Page() {
 
             {/* Footer Kiri */}
             <div className="mt-5 mt-lg-auto pt-4 border-top border-light border-opacity-25 position-relative" style={{ zIndex: 2 }}>
-                <p className="small mb-0 opacity-75"><i className="fas fa-shield-alt me-2"></i>Sistem Terenkripsi & Aman | Hak Cipta &copy; {new Date().getFullYear()} KKGMI Surabaya 10</p>
+                <p className="small mb-0 opacity-75"><i className="fas fa-shield-alt me-2"></i>Sistem Terenkripsi & Aman | Hak Cipta &copy; {new Date().getFullYear()} LMS BELAJAR INOVASI</p>
             </div>
         </div>
 
