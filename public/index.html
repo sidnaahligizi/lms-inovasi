@@ -320,53 +320,106 @@
     </div>
 </div>
 
+<!-- MODAL UNTUK ADMIN (MANAJEMEN USER & IDENTITAS DAPODIK) -->
 <div class="modal fade" id="modalUser" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-success text-white"><h5 class="modal-title fw-bold">Manajemen Akun & Identitas Detail</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body p-4 bg-light">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold">Manajemen Akun & Identitas Detail</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 bg-light" style="max-height: 75vh; overflow-y: auto;">
                 <form id="frm-user" onsubmit="event.preventDefault(); saveUser(); return false;">
                     <input type="hidden" id="mu-id">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <h6 class="fw-bold text-primary border-bottom pb-2">Akses Sistem</h6>
-                            <label class="small fw-bold">Role</label><select id="mu-role" class="form-select mb-2"><option value="siswa">Siswa</option><option value="guru">Guru</option><option value="admin">Admin</option></select>
-                            <label class="small fw-bold">Username / NISN</label><input type="text" id="mu-user" class="form-control mb-2" required>
-                            <label class="small fw-bold">Password</label><input type="text" id="mu-pass" class="form-control mb-2" required>
-                            <label class="small fw-bold">Upload Foto (Berdasarkan NISN/Manual)</label><input type="file" id="mu-foto" class="form-control mb-2" accept="image/*" onchange="encodeImageFileAsURL(this)">
+                    <div class="row g-4">
+                        <!-- BAGIAN KIRI: AKSES SISTEM UMUM (Selalu Tampil) -->
+                        <div class="col-md-4 border-end">
+                            <h6 class="fw-bold text-primary border-bottom pb-2"><i class="fas fa-key me-2"></i> Akses Sistem</h6>
+                            <label class="small fw-bold mt-2">Role / Peran</label>
+                            <select id="mu-role" class="form-select mb-2" onchange="toggleUserFields()">
+                                <option value="siswa">Siswa</option>
+                                <option value="guru">Guru</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            
+                            <label class="small fw-bold">Username / NISN</label>
+                            <input type="text" id="mu-user" class="form-control mb-2" required>
+                            
+                            <label class="small fw-bold">Password Login</label>
+                            <input type="text" id="mu-pass" class="form-control mb-2" required>
+                            
+                            <label class="small fw-bold">Nama Lengkap</label>
+                            <input type="text" id="mu-nama" class="form-control mb-2" required>
+
+                            <label class="small fw-bold">Sekolah (Instansi)</label>
+                            <input type="text" id="mu-sekolah" class="form-control mb-2">
+
+                            <label class="small fw-bold">Upload Foto Berwarna</label>
+                            <input type="file" id="mu-foto" class="form-control mb-2" accept="image/*" onchange="encodeImageFileAsURL(this)">
                             <input type="hidden" id="mu-foto-b64">
                         </div>
-                        <div class="col-md-8">
-                            <h6 class="fw-bold text-primary border-bottom pb-2">Identitas Lengkap Siswa</h6>
+
+                        <!-- BAGIAN KANAN: IDENTITAS LENGKAP BKN (Tampil Hanya Jika Siswa) -->
+                        <div class="col-md-8" id="siswa-fields-container">
+                            <h6 class="fw-bold text-primary border-bottom pb-2"><i class="fas fa-id-card me-2"></i> Identitas Lengkap Siswa (Format BKN)</h6>
                             <div class="row g-2">
-                                <div class="col-sm-6"><label class="small fw-bold">Nama Lengkap</label><input type="text" id="mu-nama" class="form-control" required></div>
+                                <!-- Data Pokok -->
                                 <div class="col-sm-3"><label class="small fw-bold">NISN</label><input type="text" id="mu-nisn" class="form-control"></div>
                                 <div class="col-sm-3"><label class="small fw-bold">NIS</label><input type="text" id="mu-nis" class="form-control"></div>
-                                
-                                <div class="col-sm-4"><label class="small fw-bold">Sekolah Asal</label><input type="text" id="mu-sekolah" class="form-control"></div>
-                                <div class="col-sm-4"><label class="small fw-bold">Kelas</label><input type="text" id="mu-kelas" class="form-control"></div>
-                                <div class="col-sm-4"><label class="small fw-bold">Jenis Kelamin</label><select id="mu-jk" class="form-select"><option value="L">Laki-Laki</option><option value="P">Perempuan</option></select></div>
+                                <div class="col-sm-3"><label class="small fw-bold">Kelas</label><input type="text" id="mu-kelas" class="form-control"></div>
+                                <div class="col-sm-3"><label class="small fw-bold">Jenis Kelamin</label><select id="mu-jk" class="form-select"><option value="L">Laki-Laki</option><option value="P">Perempuan</option></select></div>
                                 
                                 <div class="col-sm-6"><label class="small fw-bold">Tempat Lahir</label><input type="text" id="mu-tempatlahir" class="form-control"></div>
                                 <div class="col-sm-6"><label class="small fw-bold">Tanggal Lahir</label><input type="date" id="mu-tgl" class="form-control"></div>
                                 
-                                <div class="col-sm-4"><label class="small fw-bold">NIK Siswa</label><input type="text" id="mu-nik" class="form-control"></div>
-                                <div class="col-sm-4"><label class="small fw-bold">No. KK</label><input type="text" id="mu-nokk" class="form-control"></div>
-                                <div class="col-sm-4"><label class="small fw-bold">Desa/Kelurahan</label><input type="text" id="mu-desa" class="form-control"></div>
-                                
-                                <div class="col-12"><label class="small fw-bold">Alamat Lengkap</label><input type="text" id="mu-alamat" class="form-control"></div>
-                                <div class="col-sm-3"><label class="small fw-bold">RT/RW</label><input type="text" id="mu-rtrw" class="form-control"></div>
+                                <div class="col-sm-3"><label class="small fw-bold">Agama</label><input type="text" id="mu-agama" class="form-control"></div>
+                                <div class="col-sm-3"><label class="small fw-bold">Anak Ke-</label><input type="number" id="mu-anakke" class="form-control"></div>
+                                <div class="col-sm-6"><label class="small fw-bold">Status dlm Keluarga</label><input type="text" id="mu-statuskeluarga" class="form-control" placeholder="Cth: Anak Kandung"></div>
+
+                                <!-- Kependudukan -->
+                                <div class="col-sm-4 mt-3"><label class="small fw-bold">NIK Siswa</label><input type="text" id="mu-nik" class="form-control"></div>
+                                <div class="col-sm-4 mt-3"><label class="small fw-bold">No. Kartu Keluarga</label><input type="text" id="mu-nokk" class="form-control"></div>
+                                <div class="col-sm-4 mt-3"><label class="small fw-bold">No. Akta Kelahiran</label><input type="text" id="mu-akta" class="form-control"></div>
+
+                                <!-- Alamat & Kontak Siswa -->
+                                <div class="col-12 mt-3"><label class="small fw-bold">Alamat Siswa Lengkap</label><input type="text" id="mu-alamat" class="form-control"></div>
+                                <div class="col-sm-2"><label class="small fw-bold">RT/RW</label><input type="text" id="mu-rtrw" class="form-control"></div>
+                                <div class="col-sm-3"><label class="small fw-bold">Desa/Kelurahan</label><input type="text" id="mu-desa" class="form-control"></div>
                                 <div class="col-sm-3"><label class="small fw-bold">Kecamatan</label><input type="text" id="mu-kecamatan" class="form-control"></div>
-                                <div class="col-sm-3"><label class="small fw-bold">Kab/Kota</label><input type="text" id="mu-kabupaten" class="form-control"></div>
-                                <div class="col-sm-3"><label class="small fw-bold">Kode Pos</label><input type="text" id="mu-kodepos" class="form-control"></div>
+                                <div class="col-sm-4"><label class="small fw-bold">Kabupaten/Kota</label><input type="text" id="mu-kabupaten" class="form-control"></div>
+                                <div class="col-sm-6"><label class="small fw-bold">Kode Pos</label><input type="text" id="mu-kodepos" class="form-control"></div>
+                                <div class="col-sm-6"><label class="small fw-bold">Telepon / HP Siswa</label><input type="text" id="mu-telepon" class="form-control"></div>
+
+                                <!-- Riwayat Sekolah -->
+                                <h6 class="fw-bold text-success border-bottom pb-1 mt-4 mb-2">Riwayat Pendidikan</h6>
+                                <div class="col-sm-4"><label class="small fw-bold">Diterima di Kelas</label><input type="text" id="mu-diterimakelas" class="form-control"></div>
+                                <div class="col-sm-4"><label class="small fw-bold">Tanggal Diterima</label><input type="date" id="mu-diterimatanggal" class="form-control"></div>
+                                <div class="col-sm-4"><label class="small fw-bold">Semester Diterima</label><input type="text" id="mu-diterimasemester" class="form-control"></div>
+                                <div class="col-sm-12"><label class="small fw-bold">Alamat Sekolah Asal</label><input type="text" id="mu-alamatsekolahasal" class="form-control"></div>
+                                <div class="col-sm-3"><label class="small fw-bold">Tahun Ijazah</label><input type="number" id="mu-ijazahtahun" class="form-control"></div>
+                                <div class="col-sm-3"><label class="small fw-bold">Nomor Ijazah</label><input type="text" id="mu-ijazahnomor" class="form-control"></div>
+                                <div class="col-sm-3"><label class="small fw-bold">Tahun SKHUN</label><input type="number" id="mu-skhuntahun" class="form-control"></div>
+                                <div class="col-sm-3"><label class="small fw-bold">Nomor SKHUN</label><input type="text" id="mu-skhunnomor" class="form-control"></div>
+
+                                <!-- Data Orang Tua & Wali -->
+                                <h6 class="fw-bold text-info border-bottom pb-1 mt-4 mb-2">Data Orang Tua / Wali</h6>
+                                <div class="col-sm-6"><label class="small fw-bold">Nama Ayah</label><input type="text" id="mu-ayah" class="form-control"></div>
+                                <div class="col-sm-6"><label class="small fw-bold">Pekerjaan Ayah</label><input type="text" id="mu-kerjaayah" class="form-control"></div>
+                                <div class="col-sm-6"><label class="small fw-bold">Nama Ibu</label><input type="text" id="mu-ibu" class="form-control"></div>
+                                <div class="col-sm-6"><label class="small fw-bold">Pekerjaan Ibu</label><input type="text" id="mu-kerjaibu" class="form-control"></div>
+                                <div class="col-sm-8"><label class="small fw-bold">Alamat Orang Tua</label><input type="text" id="mu-alamatortu" class="form-control"></div>
+                                <div class="col-sm-4"><label class="small fw-bold">Telepon Orang Tua</label><input type="text" id="mu-teleponortu" class="form-control"></div>
                                 
-                                <div class="col-sm-4"><label class="small fw-bold">Nama Ayah</label><input type="text" id="mu-ayah" class="form-control"></div>
-                                <div class="col-sm-4"><label class="small fw-bold">Nama Ibu</label><input type="text" id="mu-ibu" class="form-control"></div>
-                                <div class="col-sm-4"><label class="small fw-bold">Nama Wali</label><input type="text" id="mu-wali" class="form-control"></div>
+                                <div class="col-sm-4 mt-3"><label class="small fw-bold">Nama Wali</label><input type="text" id="mu-wali" class="form-control"></div>
+                                <div class="col-sm-4 mt-3"><label class="small fw-bold">Pekerjaan Wali</label><input type="text" id="mu-kerjawali" class="form-control"></div>
+                                <div class="col-sm-4 mt-3"><label class="small fw-bold">Alamat Wali</label><input type="text" id="mu-alamatwali" class="form-control"></div>
                             </div>
                         </div>
                     </div>
-                    <div class="mt-4"><button type="submit" class="btn btn-success w-100 py-2 fw-bold rounded-3">SIMPAN DATA</button></div>
+                    <div class="mt-4 border-top pt-3 text-end">
+                        <button type="button" class="btn btn-secondary px-4 me-2 rounded-pill" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-success px-5 py-2 fw-bold rounded-pill shadow-sm"><i class="fas fa-save me-2"></i> SIMPAN DATA</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -693,6 +746,19 @@ function renderUsers(users) {
 }
 
 // Fungsi untuk merender isi (baris) tabel pengguna berdasarkan filter
+// Menampilkan/menyembunyikan form identitas tergantung role yang dipilih
+function toggleUserFields() {
+    const role = $('#mu-role').val();
+    if(role === 'siswa') {
+        $('#siswa-fields-container').show();
+        $('.modal-dialog').addClass('modal-xl').removeClass('modal-md'); // Perlebar modal jika siswa
+    } else {
+        $('#siswa-fields-container').hide();
+        $('.modal-dialog').removeClass('modal-xl').addClass('modal-md'); // Perkecil modal jika guru/admin
+    }
+}
+
+// Render baris data di tabel Data Peserta
 function renderUserRows(data) {
     const role = String(user.Role).trim().toLowerCase();
     const isAdmin = role === 'admin';
@@ -703,7 +769,6 @@ function renderUserRows(data) {
         h = `<tr><td colspan="${isAdmin ? 8 : (canEdit ? 7 : 6)}" class="text-center text-muted py-4">Data peserta tidak ditemukan.</td></tr>`;
     } else {
         data.forEach(u => {
-            // Deteksi huruf kecil dari Turso
             let uId = u.ID || u.id;
             let uNama = u.Nama || u.nama || '-';
             let uUsername = u.Username || u.username || '-';
@@ -713,8 +778,8 @@ function renderUserRows(data) {
             let uTgl = u.TglLahir || u.tgllahir || '-';
             let uFoto = u.Foto || u.foto || 'https://via.placeholder.com/40';
 
-            // Amankan data untuk tombol Edit
-            const safeData = encodeURIComponent(JSON.stringify({ ID: uId, Nama: uNama, Username: uUsername, Password: u.Password || u.password, Role: uRole, Kelas: uKelas, Sekolah: uSekolah, TglLahir: uTgl, Foto: uFoto }));
+            // Kirim SELURUH data u ke fungsi edit agar terbaca semua
+            const safeData = encodeURIComponent(JSON.stringify(u));
 
             h += `<tr>
                 ${isAdmin ? `<td><input type="checkbox" class="form-check-input check-user" value="${uId}" onchange="toggleBulkDeleteUsersBtn()"></td>` : ''}
@@ -725,7 +790,7 @@ function renderUserRows(data) {
                 <td>${uKelas}</td>
                 <td>${uSekolah}</td>
                 ${canEdit ? `<td>
-                    <button class="btn btn-sm btn-outline-dark me-1 rounded-circle" onclick="editUser('${safeData}')" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-dark me-1 rounded-circle" onclick="editUser('${safeData}')" title="Edit Detail"><i class="fas fa-edit"></i></button>
                     ${isAdmin ? `<button class="btn btn-sm btn-outline-danger rounded-circle" onclick="delUser('${uId}')" title="Hapus"><i class="fas fa-trash"></i></button>` : ''}
                 </td>` : ''}
             </tr>`;
@@ -736,82 +801,116 @@ function renderUserRows(data) {
     if(isAdmin) toggleBulkDeleteUsersBtn();
 }
 
-// Logika Upload Foto Masal (Mencocokkan nama file dengan Username)
-async function handleBulkPhotoUpload(event) {
-    const files = event.target.files;
-    if(!files || files.length === 0) return;
+// Buka modal untuk edit user (mengisi semua field)
+function editUser(str) {
+    const d = JSON.parse(decodeURIComponent(str));
+    
+    // Akses Sistem
+    $('#mu-id').val(d.ID || d.id || '');
+    $('#mu-role').val(String(d.Role || d.role).toLowerCase());
+    toggleUserFields(); // Cek langsung tampilkan/sembunyikan
+    
+    $('#mu-user').val(d.Username || d.username || '');
+    $('#mu-pass').val(d.Password || d.password || '');
+    $('#mu-nama').val(d.Nama || d.nama || '');
+    $('#mu-sekolah').val(d.Sekolah || d.sekolah || '');
+    $('#mu-foto-b64').val(d.Foto || d.foto || ''); 
+    $('#mu-foto').val('');
 
-    let uploadQueue = [];
+    // Identitas Siswa Pokok
+    $('#mu-nisn').val(d.NISN || d.nisn || '');
+    $('#mu-nis').val(d.NIS || d.nis || '');
+    $('#mu-kelas').val(d.Kelas || d.kelas || '');
+    $('#mu-jk').val(d.JenisKelamin || d.jk || 'L');
+    $('#mu-tempatlahir').val(d.TempatLahir || d.tempat_lahir || '');
+    $('#mu-tgl').val(d.TglLahir || d.tgllahir || '');
+    $('#mu-agama').val(d.Agama || d.agama || '');
+    $('#mu-anakke').val(d.AnakKe || d.anak_ke || '');
+    $('#mu-statuskeluarga').val(d.StatusKeluarga || d.status_keluarga || '');
+    
+    // Kependudukan
+    $('#mu-nik').val(d.NIK || d.nik || '');
+    $('#mu-nokk').val(d.NoKK || d.no_kk || '');
+    $('#mu-akta').val(d.AktaKelahiran || d.akta_kelahiran || '');
 
-    // Proses membaca seluruh file yang dipilih
-    for(let i = 0; i < files.length; i++) {
-        let file = files[i];
-        // Ambil nama file tanpa ekstensi (.jpg, .png, dll)
-        let filename = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-        
-        // Cari user yang usernamenya sama persis dengan nama file (tidak sensitif huruf besar/kecil)
-        let matchedUser = window.allUsersData.find(u => String(u.Username).toLowerCase() === String(filename).toLowerCase());
-        
-        if(matchedUser) {
-            // Konversi file gambar menjadi format Base64
-            let base64str = await new Promise((resolve) => {
-                let reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(file);
-            });
-            
-            // Siapkan payload data untuk diupdate
-            let updatedUser = {
-                id: matchedUser.ID,
-                nama: matchedUser.Nama,
-                tglLahir: matchedUser.TglLahir,
-                username: matchedUser.Username,
-                password: matchedUser.Password,
-                role: matchedUser.Role,
-                kelas: matchedUser.Kelas,
-                sekolah: matchedUser.Sekolah,
-                foto: base64str
-            };
-            uploadQueue.push(updatedUser);
-        }
-    }
+    // Alamat & Kontak Siswa
+    $('#mu-alamat').val(d.Alamat || d.alamat || '');
+    $('#mu-rtrw').val(d.RTRW || d.rt_rw || '');
+    $('#mu-desa').val(d.DesaKelurahan || d.kelurahan || ''); 
+    $('#mu-kecamatan').val(d.Kecamatan || d.kecamatan || '');
+    $('#mu-kabupaten').val(d.KabupatenKota || d.kabupaten || '');
+    $('#mu-kodepos').val(d.KodePos || d.kode_pos || '');
+    $('#mu-telepon').val(d.TeleponSiswa || d.telepon_siswa || '');
 
-    // Kosongkan input agar bisa mengupload file yang sama lagi jika perlu
-    event.target.value = '';
+    // Riwayat Sekolah
+    $('#mu-diterimakelas').val(d.DiterimaKelas || d.diterima_kelas || '');
+    $('#mu-diterimatanggal').val(d.DiterimaTanggal || d.diterima_tanggal || '');
+    $('#mu-diterimasemester').val(d.DiterimaSemester || d.diterima_semester || '');
+    $('#mu-alamatsekolahasal').val(d.AlamatSekolahAsal || d.alamat_sekolah_asal || '');
+    $('#mu-ijazahtahun').val(d.IjazahTahun || d.ijazah_tahun || '');
+    $('#mu-ijazahnomor').val(d.IjazahNomor || d.ijazah_nomor || '');
+    $('#mu-skhuntahun').val(d.SKHUNTahun || d.skhun_tahun || '');
+    $('#mu-skhunnomor').val(d.SKHUNNomor || d.skhun_nomor || '');
 
-    if(uploadQueue.length === 0) {
-        return Swal.fire('Tidak Ada Kecocokan', 'Tidak ada nama file foto yang cocok dengan Username peserta. Pastikan nama file sama persis dengan username (cth: siswa01.jpg).', 'info');
-    }
+    // Orang Tua & Wali
+    $('#mu-ayah').val(d.NamaAyah || d.ayah || '');
+    $('#mu-kerjaayah').val(d.KerjaAyah || d.kerja_ayah || '');
+    $('#mu-ibu').val(d.NamaIbu || d.ibu || '');
+    $('#mu-kerjaibu').val(d.KerjaIbu || d.kerja_ibu || '');
+    $('#mu-alamatortu').val(d.AlamatOrtu || d.alamat_ortu || '');
+    $('#mu-teleponortu').val(d.TeleponOrtu || d.telepon_ortu || '');
+    
+    $('#mu-wali').val(d.NamaWali || d.wali || '');
+    $('#mu-kerjawali').val(d.KerjaWali || d.kerja_wali || '');
+    $('#mu-alamatwali').val(d.AlamatWali || d.alamat_wali || '');
 
-    // Konfirmasi eksekusi penyimpanan ke database
-    Swal.fire({
-        title: `Ditemukan ${uploadQueue.length} Foto Cocok!`,
-        text: "Mulai proses upload foto ke database?",
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Ya, Upload Sekarang'
-    }).then(async (r) => {
-        if(r.isConfirmed) {
-            showLoad(true);
-            let successCount = 0;
-            // Kirim antrean upload secara berurutan agar tidak overload
-            for(let data of uploadQueue) {
-                await new Promise(resolve => {
-                    google.script.run
-                        .withSuccessHandler(() => { successCount++; resolve(); })
-                        .withFailureHandler(() => resolve())
-                        .adminManageUser('save', data);
-                });
-            }
-            showLoad(false);
-            Swal.fire('Selesai', `Berhasil mengupload ${successCount} foto.`, 'success');
-            loadPage('admin-users'); // Segarkan data tabel
-        }
-    });
+    $('#modalUser').modal('show');
 }
 
+// Simpan data dari Form ke Database
+function saveUser() {
+    const d = {
+        id: $('#mu-id').val(), role: $('#mu-role').val(),
+        username: $('#mu-user').val(), password: $('#mu-pass').val(), nama: $('#mu-nama').val(),
+        sekolah: $('#mu-sekolah').val(), foto: $('#mu-foto-b64').val(),
 
+        // Ambil Data Siswa (Jika role guru/admin, isian ini akan otomatis string kosong, aman karena route.js kita pakai || '-')
+        nisn: $('#mu-nisn').val(), nis: $('#mu-nis').val(), kelas: $('#mu-kelas').val(),
+        jk: $('#mu-jk').val(), tempat_lahir: $('#mu-tempatlahir').val(), tglLahir: $('#mu-tgl').val(),
+        agama: $('#mu-agama').val(), anak_ke: $('#mu-anakke').val(), status_keluarga: $('#mu-statuskeluarga').val(),
+        
+        nik: $('#mu-nik').val(), no_kk: $('#mu-nokk').val(), akta_kelahiran: $('#mu-akta').val(),
+        
+        alamat: $('#mu-alamat').val(), rt_rw: $('#mu-rtrw').val(), kelurahan: $('#mu-desa').val(),
+        kecamatan: $('#mu-kecamatan').val(), kabupaten: $('#mu-kabupaten').val(), kode_pos: $('#mu-kodepos').val(),
+        telepon_siswa: $('#mu-telepon').val(),
 
+        diterima_kelas: $('#mu-diterimakelas').val(), diterima_tanggal: $('#mu-diterimatanggal').val(),
+        diterima_semester: $('#mu-diterimasemester').val(), alamat_sekolah_asal: $('#mu-alamatsekolahasal').val(),
+        ijazah_tahun: $('#mu-ijazahtahun').val(), ijazah_nomor: $('#mu-ijazahnomor').val(),
+        skhun_tahun: $('#mu-skhuntahun').val(), skhun_nomor: $('#mu-skhunnomor').val(),
+
+        ayah: $('#mu-ayah').val(), kerja_ayah: $('#mu-kerjaayah').val(),
+        ibu: $('#mu-ibu').val(), kerja_ibu: $('#mu-kerjaibu').val(),
+        alamat_ortu: $('#mu-alamatortu').val(), telepon_ortu: $('#mu-teleponortu').val(),
+        
+        wali: $('#mu-wali').val(), kerja_wali: $('#mu-kerjawali').val(), alamat_wali: $('#mu-alamatwali').val()
+    };
+    
+    if(!d.nama || !d.username || !d.password) return Swal.fire('Data Tidak Lengkap', 'Username, Password, dan Nama wajib diisi!', 'warning');
+
+    const btn = $('#frm-user button[type="submit"]'); const originalText = btn.html();
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i> MENYIMPAN...');
+    showLoad(true);
+    
+    google.script.run.withSuccessHandler(res => {
+        showLoad(false); btn.prop('disabled', false).html(originalText);
+        if(res.status === 'success') { $('#modalUser').modal('hide'); toast('success', res.msg); loadPage('admin-users'); } 
+        else { Swal.fire('Gagal Menyimpan', res.msg, 'error'); }
+    }).withFailureHandler(err => {
+        showLoad(false); btn.prop('disabled', false).html(originalText); Swal.fire('Koneksi Terputus', err.message || 'Gagal menghubungi server.', 'error');
+    }).adminManageUser('save', d);
+}
 // Logika Filter (Nama/Username dan Sekolah)
 function applyFilterUsers() {
     let kataKunci = $('#filter-user-nama').val().toLowerCase();
@@ -2494,61 +2593,6 @@ function handleResetCache() {
             }).sysResetCache();
         }
     });
-}
-function editUser(str) {
-    const d = JSON.parse(decodeURIComponent(str));
-    $('#mu-id').val(d.ID || d.id);
-    $('#mu-nama').val(d.Nama || d.nama);
-    $('#mu-tgl').val(d.TglLahir || d.tgllahir || '');
-    $('#mu-user').val(d.Username || d.username);
-    $('#mu-pass').val(d.Password || d.password);
-    $('#mu-role').val(String(d.Role || d.role).toLowerCase());
-    $('#mu-kelas').val(d.Kelas || d.kelas || '');
-    $('#mu-sekolah').val(d.Sekolah || d.sekolah || '');
-    $('#mu-foto-b64').val(d.Foto || d.foto || ''); 
-    $('#mu-nis').val(d.NIS || d.nis || '');
-    $('#mu-nisn').val(d.NISN || d.nisn || '');
-    $('#mu-jk').val(d.JenisKelamin || d.jeniskelamin || 'L');
-    $('#mu-tempatlahir').val(d.TempatLahir || d.tempatlahir || '');
-    $('#mu-nik').val(d.NIK || d.nik || '');
-    $('#mu-nokk').val(d.NoKK || d.nokk || '');
-    $('#mu-desa').val(d.DesaKelurahan || d.desakelurahan || ''); // Kelurahan mapping
-    $('#mu-alamat').val(d.Alamat || d.alamat || '');
-    $('#mu-rtrw').val(d.RTRW || d.rtrw || '');
-    $('#mu-kecamatan').val(d.Kecamatan || d.kecamatan || '');
-    $('#mu-kabupaten').val(d.KabupatenKota || d.kabupatenkota || '');
-    $('#mu-kodepos').val(d.KodePos || d.kodepos || '');
-    $('#mu-ayah').val(d.NamaAyah || d.namaayah || '');
-    $('#mu-ibu').val(d.NamaIbu || d.namaibu || '');
-    $('#mu-wali').val(d.NamaWali || d.namawali || '');
-    $('#mu-foto').val('');
-    $('#modalUser').modal('show');
-}
-
-function saveUser() {
-    const d = {
-        id: $('#mu-id').val(), nama: $('#mu-nama').val(), tglLahir: $('#mu-tgl').val() || '-',
-        username: $('#mu-user').val(), password: $('#mu-pass').val(), role: $('#mu-role').val(),
-        kelas: $('#mu-kelas').val(), sekolah: $('#mu-sekolah').val(), foto: $('#mu-foto-b64').val(),
-        nis: $('#mu-nis').val(), nisn: $('#mu-nisn').val(), jk: $('#mu-jk').val(),
-        tempatLahir: $('#mu-tempatlahir').val(), nik: $('#mu-nik').val(), nokk: $('#mu-nokk').val(),
-        kelurahan: $('#mu-desa').val(), alamat: $('#mu-alamat').val(), rtrw: $('#mu-rtrw').val(),
-        kecamatan: $('#mu-kecamatan').val(), kabupaten: $('#mu-kabupaten').val(),
-        kodepos: $('#mu-kodepos').val(), ayah: $('#mu-ayah').val(), ibu: $('#mu-ibu').val(), wali: $('#mu-wali').val()
-    };
-    if(!d.nama || !d.username || !d.password) return Swal.fire('Data Tidak Lengkap', 'Nama, Username, dan Password wajib diisi!', 'warning');
-
-    const btn = $('#frm-user button[type="submit"]'); const originalText = btn.html();
-    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i> MENYIMPAN...');
-    showLoad(true);
-    
-    google.script.run.withSuccessHandler(res => {
-        showLoad(false); btn.prop('disabled', false).html(originalText);
-        if(res.status === 'success') { $('#modalUser').modal('hide'); toast('success', res.msg); loadPage('admin-users'); } 
-        else { Swal.fire('Gagal Menyimpan', res.msg, 'error'); }
-    }).withFailureHandler(err => {
-        showLoad(false); btn.prop('disabled', false).html(originalText); Swal.fire('Koneksi Terputus', err.message || 'Gagal menghubungi server.', 'error');
-    }).adminManageUser('save', d);
 }
 
 function loadPage(page) {
