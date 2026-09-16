@@ -872,22 +872,20 @@ async function bulkDeleteUsers() {
     loadPage('admin-users');
 }
 
-// Logika Generate Template Excel Data Peserta
 function downloadUserTemplate() {
     const wsData = [{
-        "Nama": "Siswa Contoh", "Username": "siswa01", "Password": "password123", "Role": "siswa",
-        "Sekolah": "SD/MI Contoh", "Kelas": "6", "NIS": "12345", "NISN": "0012345678",
-        "JenisKelamin": "L", "TempatLahir": "Surabaya", "TglLahir": "2010-05-14",
-        "NamaAyah": "Budi", "NamaIbu": "Siti", "NIK": "3570000000000001", "NoKK": "3570000000000002",
-        "Alamat": "Jl. Merdeka No 1", "RTRW": "01/02", "DesaKelurahan": "Gubeng",
-        "Kecamatan": "Gubeng", "KabupatenKota": "Surabaya", "KodePos": "60281", "NamaWali": "-"
+        "Nama Lengkap": "Siswa Contoh", "Username": "siswa01", "Password": "password123", "Role": "siswa", "Kelas": "10A", "Sekolah Saat Ini": "MI Surabaya",
+        "NISN": "0012345678", "Tempat Lahir": "Surabaya", "Tanggal Lahir (YYYY-MM-DD)": "2010-05-14", "Jenis Kelamin (L/P)": "L",
+        "Agama": "Islam", "Anak Ke": "1", "Status Keluarga": "Anak Kandung", "Alamat Siswa": "Jl. Mawar No 2", "Telepon Siswa": "081234567",
+        "Diterima Kelas": "7A", "Diterima Tanggal": "2020-07-15", "Diterima Semester": "Ganjil", "Sekolah Asal": "SD Maju", "Alamat Sekolah Asal": "Jl. Kenanga",
+        "Ijazah Tahun": "2020", "Ijazah Nomor": "DN-012345", "SKHUN Tahun": "2020", "SKHUN Nomor": "SK-012345", 
+        "Nama Ayah": "Budi", "Nama Ibu": "Siti", "Alamat Ortu": "Jl. Mawar No 2", "Telepon Ortu": "081299999", "Kerja Ayah": "PNS", "Kerja Ibu": "Ibu Rumah Tangga",
+        "Nama Wali": "-", "Alamat Wali": "-", "Kerja Wali": "-"
     }];
     const ws = XLSX.utils.json_to_sheet(wsData);
-    const wscols = [ {wch:25}, {wch:15}, {wch:15}, {wch:10}, {wch:25}, {wch:10}, {wch:15}, {wch:20}, {wch:15}, {wch:20}, {wch:15}, {wch:20}, {wch:20}, {wch:25}, {wch:25}, {wch:40}, {wch:10}, {wch:20}, {wch:20}, {wch:20}, {wch:10}, {wch:20} ];
-    ws['!cols'] = wscols;
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template_Data_Peserta");
-    XLSX.writeFile(wb, "Template_Upload_Peserta.xlsx");
+    XLSX.writeFile(wb, "Template_Upload_Peserta_Dapodik.xlsx");
 }
 
 function handleUploadUsersExcel(e) {
@@ -897,20 +895,14 @@ function handleUploadUsersExcel(e) {
         const json = XLSX.utils.sheet_to_json(XLSX.read(evt.target.result, {type: 'binary'}).Sheets[XLSX.read(evt.target.result, {type: 'binary'}).SheetNames[0]]);
         if(json.length === 0) return Swal.fire('Error', 'Data Excel kosong atau format salah.', 'error');
         
-        // Membaca SEMUA kolom identitas
         const formatted = json.map(r => ({
-            Nama: r.Nama || '-', 
-            Username: r.Username || r.NISN || ('user' + Date.now()), 
-            Password: r.Password || '123456',
-            Role: String(r.Role || 'siswa').toLowerCase(), 
-            Sekolah: r.Sekolah || user.Sekolah || '-', 
-            Kelas: r.Kelas || '-', 
-            TglLahir: r.TglLahir || '',
-            NIS: r.NIS || '', NISN: r.NISN || '', JenisKelamin: r.JenisKelamin || 'L',
-            TempatLahir: r.TempatLahir || '', NamaAyah: r.NamaAyah || '', NamaIbu: r.NamaIbu || '',
-            NIK: r.NIK || '', NoKK: r.NoKK || '', Alamat: r.Alamat || '',
-            RTRW: r.RTRW || '', DesaKelurahan: r.DesaKelurahan || '', Kecamatan: r.Kecamatan || '',
-            KabupatenKota: r.KabupatenKota || '', KodePos: r.KodePos || '', NamaWali: r.NamaWali || ''
+            Nama: r['Nama Lengkap'] || '-', Username: r['Username'] || r['NISN'] || ('user' + Date.now()), Password: r['Password'] || '123456', Role: String(r['Role'] || 'siswa').toLowerCase(),
+            Sekolah: r['Sekolah Saat Ini'] || user.Sekolah || '-', Kelas: r['Kelas'] || '-', NISN: r['NISN'] || '-', TempatLahir: r['Tempat Lahir'] || '-', TglLahir: r['Tanggal Lahir (YYYY-MM-DD)'] || '-',
+            JenisKelamin: r['Jenis Kelamin (L/P)'] || 'L', Agama: r['Agama'] || '-', AnakKe: r['Anak Ke'] || '-', StatusKeluarga: r['Status Keluarga'] || '-', Alamat: r['Alamat Siswa'] || '-',
+            TeleponSiswa: r['Telepon Siswa'] || '-', DiterimaKelas: r['Diterima Kelas'] || '-', DiterimaTanggal: r['Diterima Tanggal'] || '-', DiterimaSemester: r['Diterima Semester'] || '-',
+            AlamatSekolahAsal: r['Alamat Sekolah Asal'] || '-', IjazahTahun: r['Ijazah Tahun'] || '-', IjazahNomor: r['Ijazah Nomor'] || '-', SKHUNTahun: r['SKHUN Tahun'] || '-', SKHUNNomor: r['SKHUN Nomor'] || '-',
+            NamaAyah: r['Nama Ayah'] || '-', NamaIbu: r['Nama Ibu'] || '-', AlamatOrtu: r['Alamat Ortu'] || '-', TeleponOrtu: r['Telepon Ortu'] || '-', KerjaAyah: r['Kerja Ayah'] || '-', KerjaIbu: r['Kerja Ibu'] || '-',
+            NamaWali: r['Nama Wali'] || '-', AlamatWali: r['Alamat Wali'] || '-', KerjaWali: r['Kerja Wali'] || '-'
         }));
 
         showLoad(true);
@@ -921,7 +913,6 @@ function handleUploadUsersExcel(e) {
     reader.readAsBinaryString(file);
     e.target.value = '';
 }
-
 // -----------------------------------------------------
 // KOP SURAT STANDAR KKGMI
 // -----------------------------------------------------
@@ -2618,31 +2609,19 @@ window.dataSiswaCetak = [];
 
 window.dataSiswaCetak = [];
 
+window.dataSiswaCetak = [];
+
 function renderCetakIdentitas(users) {
     window.dataSiswaCetak = users.filter(u => String(u.Role || u.role).toLowerCase() === 'siswa');
-    let html = `<div class="d-flex justify-content-between mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-id-badge me-2"></i> Cetak Identitas Siswa</h5></div>
+    let html = `<div class="d-flex justify-content-between mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-id-badge me-2"></i> Cetak Identitas Siswa (Format BKN)</h5></div>
         <div class="row g-3 bg-white p-4 rounded-4 shadow-sm border mb-4">
             <div class="col-md-12"><label class="small fw-bold">Pilih Siswa</label><select id="cetak-id-siswa" class="form-select">
                 <option value="">-- Pilih Siswa --</option>
                 ${window.dataSiswaCetak.map(u => `<option value="${u.ID || u.id}">${u.Nama || u.nama} - Kls ${u.Kelas || u.kelas}</option>`).join('')}
             </select></div>
-            
             <div class="col-md-6"><label class="small fw-bold">Nama Kepala Sekolah</label><input type="text" id="cetak-kepsek" class="form-control" placeholder="Nama Lengkap Kepala Sekolah..."></div>
             <div class="col-md-6"><label class="small fw-bold">NIP Kepala Sekolah</label><input type="text" id="cetak-nip-kepsek" class="form-control" placeholder="Kosongkan jika tidak ada..."></div>
-            
-            <div class="col-12 mt-3"><h6 class="fw-bold">Pilih Data yang Dicetak:</h6>
-                <div class="d-flex flex-wrap gap-3">
-                    <label><input type="checkbox" class="form-check-input chk-cetak" value="NIS/NISN" checked> NIS/NISN</label>
-                    <label><input type="checkbox" class="form-check-input chk-cetak" value="TTL" checked> Tempat, Tgl Lahir</label>
-                    <label><input type="checkbox" class="form-check-input chk-cetak" value="Orang Tua" checked> Nama Orang Tua</label>
-                    <label><input type="checkbox" class="form-check-input chk-cetak" value="Alamat" checked> Alamat Lengkap</label>
-                    <label><input type="checkbox" class="form-check-input chk-cetak" value="Foto" checked> Foto Siswa</label>
-                </div>
-            </div>
-            
-            <div class="col-12 mt-4 text-center">
-                <button class="btn btn-primary btn-lg px-5 shadow rounded-pill" onclick="prosesCetakIdentitas()"><i class="fas fa-print me-2"></i>Cetak Identitas PDF</button>
-            </div>
+            <div class="col-12 mt-4 text-center"><button class="btn btn-primary btn-lg px-5 shadow rounded-pill" onclick="prosesCetakIdentitas()"><i class="fas fa-print me-2"></i>Cetak Identitas PDF</button></div>
         </div>`;
     $('#content-area').html(html);
 }
@@ -2651,51 +2630,86 @@ function prosesCetakIdentitas() {
     let val = $('#cetak-id-siswa').val();
     if(!val) return Swal.fire('Peringatan', 'Pilih siswa terlebih dahulu.', 'warning');
     let u = window.dataSiswaCetak.find(x => String(x.ID || x.id) === String(val));
-    if(!u) return Swal.fire('Error', 'Data siswa tidak ditemukan di sistem.', 'error');
+    if(!u) return Swal.fire('Error', 'Data siswa tidak ditemukan.', 'error');
     
-    let kepsek = $('#cetak-kepsek').val() || '...............................';
-    let nipKepsek = $('#cetak-nip-kepsek').val() || '-';
-    let checkedFields = $('.chk-cetak:checked').map(function(){ return $(this).val(); }).get();
-
-    let trs = `<tr><td width="30%" style="padding: 8px;">Nama Lengkap</td><td width="2%">:</td><td><strong>${u.Nama || u.nama || '-'}</strong></td></tr>`;
-    if(checkedFields.includes('NIS/NISN')) trs += `<tr><td style="padding: 8px;">NIS / NISN</td><td>:</td><td>${u.NIS || u.nis || '-'} / ${u.NISN || u.nisn || '-'}</td></tr>`;
-    if(checkedFields.includes('TTL')) trs += `<tr><td style="padding: 8px;">Tempat, Tgl Lahir</td><td>:</td><td>${u.TempatLahir || u.tempat_lahir || '-'}, ${u.TglLahir || u.tgllahir || '-'}</td></tr>`;
-    if(checkedFields.includes('Orang Tua')) trs += `<tr><td style="padding: 8px;">Nama Ayah / Ibu</td><td>:</td><td>${u.NamaAyah || u.ayah || '-'} / ${u.NamaIbu || u.ibu || '-'}</td></tr>`;
-    if(checkedFields.includes('Alamat')) trs += `<tr><td style="padding: 8px;">Alamat Lengkap</td><td>:</td><td>${u.Alamat || u.alamat || '-'} RT/RW ${u.RTRW || u.rt_rw || '-'}, ${u.DesaKelurahan || u.kelurahan || '-'}, Kec. ${u.Kecamatan || u.kecamatan || '-'}, Kab. ${u.KabupatenKota || u.kabupaten || '-'}</td></tr>`;
-    
-    let photoUrl = u.Foto || u.foto || 'https://via.placeholder.com/120';
-    let photoBlock = checkedFields.includes('Foto') ? `<img src="${photoUrl}" style="width:120px; height:160px; object-fit:cover; border: 3px solid #064e3b; margin-right: 20px;">` : '';
+    let kepsek = $('#cetak-kepsek').val() || '( .......................................... )';
+    let nipKepsek = $('#cetak-nip-kepsek').val() || '';
+    let sekolahAsal = u.Sekolah || u.sekolah || '-';
+    let tglCetak = new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
 
     let html = `
-    <style>.kop { display: none !important; } .print-container { padding: 20px; font-family: Arial, sans-serif; }</style>
+    <style>
+        .kop { display: none !important; } 
+        .print-container { padding: 30px; font-family: Arial, sans-serif; font-size: 15px; color: #000; line-height: 1.6; }
+        .id-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .id-table td { vertical-align: top; padding: 4px 5px; }
+        .num-col { width: 30px; text-align: right; padding-right: 10px; }
+        .label-col { width: 350px; }
+        .colon-col { width: 20px; text-align: center; }
+        .sub-label { padding-left: 20px; }
+        .sub-sub-label { padding-left: 40px; }
+    </style>
     <div class="print-container">
-        <div style="display: flex; align-items: center; border-bottom: 4px solid #064e3b; padding-bottom: 15px; margin-bottom: 25px;">
-            <img src="${user.LogoUrl || 'https://lh3.googleusercontent.com/d/1aWHmp6kNKwTYkwEMqVg34_ofiWRkymFe'}" style="width: 90px; height: 90px; margin-right: 20px;">
-            <div style="flex-grow: 1; text-align: center;">
-                <h2 style="margin:0; font-size: 24px; color:#064e3b; letter-spacing: 1px; font-weight: bold;">KELOMPOK KERJA GURU MADRASAH IBTIDAIYAH</h2>
-                <h3 style="margin:5px 0; font-size: 18px; color:#1e293b;">(KKGMI) KOTA SURABAYA 10</h3>
-                <p style="margin: 0; font-size: 12px; color: #64748b;">Aplikasi CBT & LMS Terpadu KKGMI Kota Surabaya 10</p>
-            </div>
-        </div>
-
-        <div style="border: 2px solid #000; padding: 20px; border-radius: 10px; margin-bottom: 20px; page-break-inside: avoid;">
-            <h3 style="text-align:center; text-decoration: underline; color: #064e3b;">IDENTITAS PESERTA DIDIK</h3><br>
-            <div style="display:flex; align-items:flex-start; margin-top:20px;">
-                ${photoBlock}
-                <table style="width:100%; font-size:15px; border-collapse: collapse;">${trs}</table>
-            </div>
-        </div>
-        
-        <table style="width:100%; text-align:center; font-size:14px; margin-top: 80px; page-break-inside: avoid;">
-            <tr><td width="50%"></td><td width="50%">Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}<br>Kepala Sekolah</td></tr>
-            <tr><td height="100"></td><td></td></tr>
-            <tr><td></td><td><strong>${kepsek}</strong><br>NIP. ${nipKepsek}</td></tr>
+        <h2 style="text-align:center; font-weight:bold; font-size:22px; margin-bottom: 40px; text-transform: uppercase;">IDENTITAS PESERTA DIDIK</h2>
+        <table class="id-table">
+            <tr><td class="num-col">1.</td><td class="label-col">Nama Peserta Didik (lengkap)</td><td class="colon-col">:</td><td><strong>${u.Nama || u.nama || '-'}</strong></td></tr>
+            <tr><td class="num-col">2.</td><td class="label-col">Nomor Induk Siswa Nasional</td><td class="colon-col">:</td><td>${u.NISN || u.nisn || '-'}</td></tr>
+            <tr><td class="num-col">3.</td><td class="label-col">Tempat dan Tanggal Lahir</td><td class="colon-col">:</td><td>${u.TempatLahir || u.tempat_lahir || '-'}, ${u.TglLahir || u.tgllahir || '-'}</td></tr>
+            <tr><td class="num-col">4.</td><td class="label-col">Jenis Kelamin</td><td class="colon-col">:</td><td>${(u.JenisKelamin || u.jk) === 'P' ? 'Perempuan' : 'Laki-Laki'}</td></tr>
+            <tr><td class="num-col">5.</td><td class="label-col">Agama</td><td class="colon-col">:</td><td>${u.Agama || u.agama || '-'}</td></tr>
+            <tr><td class="num-col">6.</td><td class="label-col">Anak ke</td><td class="colon-col">:</td><td>${u.AnakKe || u.anak_ke || '-'}</td></tr>
+            <tr><td class="num-col">7.</td><td class="label-col">Status dalam Keluarga</td><td class="colon-col">:</td><td>${u.StatusKeluarga || u.status_keluarga || '-'}</td></tr>
+            <tr><td class="num-col">8.</td><td class="label-col">Alamat Peserta Didik</td><td class="colon-col">:</td><td>${u.Alamat || u.alamat || '-'}</td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">Telepon</td><td class="colon-col">:</td><td>${u.TeleponSiswa || u.telepon_siswa || '-'}</td></tr>
+            
+            <tr><td class="num-col">9.</td><td class="label-col">Diterima di Sekolah ini</td><td class="colon-col"></td><td></td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">a. Di Kelas</td><td class="colon-col">:</td><td>${u.DiterimaKelas || u.diterima_kelas || '-'}</td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">b. Pada Tanggal</td><td class="colon-col">:</td><td>${u.DiterimaTanggal || u.diterima_tanggal || '-'}</td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">c. Semester</td><td class="colon-col">:</td><td>${u.DiterimaSemester || u.diterima_semester || '-'}</td></tr>
+            
+            <tr><td class="num-col">10.</td><td class="label-col">Sekolah Asal</td><td class="colon-col"></td><td></td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">a. Nama Sekolah</td><td class="colon-col">:</td><td>${sekolahAsal}</td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">b. Alamat</td><td class="colon-col">:</td><td>${u.AlamatSekolahAsal || u.alamat_sekolah_asal || '-'}</td></tr>
+            
+            <tr><td class="num-col">11.</td><td class="label-col">Ijazah Sebelumnya</td><td class="colon-col"></td><td></td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">a. Tahun</td><td class="colon-col">:</td><td>${u.IjazahTahun || u.ijazah_tahun || '-'}</td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">b. Nomor</td><td class="colon-col">:</td><td>${u.IjazahNomor || u.ijazah_nomor || '-'}</td></tr>
+            
+            <tr><td class="num-col">12.</td><td class="label-col">Surat Keterangan Hasil Ujian (SKHUN)</td><td class="colon-col"></td><td></td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">a. Tahun</td><td class="colon-col">:</td><td>${u.SKHUNTahun || u.skhun_tahun || '-'}</td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">b. Nomor</td><td class="colon-col">:</td><td>${u.SKHUNNomor || u.skhun_nomor || '-'}</td></tr>
+            
+            <tr><td class="num-col">13.</td><td class="label-col">Orang Tua</td><td class="colon-col"></td><td></td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">a. Ayah</td><td class="colon-col">:</td><td>${u.NamaAyah || u.ayah || '-'}</td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">b. Ibu</td><td class="colon-col">:</td><td>${u.NamaIbu || u.ibu || '-'}</td></tr>
+            
+            <tr><td class="num-col">14.</td><td class="label-col">Alamat Orang Tua</td><td class="colon-col">:</td><td>${u.AlamatOrtu || u.alamat_ortu || '-'}</td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">Telepon</td><td class="colon-col">:</td><td>${u.TeleponOrtu || u.telepon_ortu || '-'}</td></tr>
+            
+            <tr><td class="num-col">15.</td><td class="label-col">Pekerjaan Orang Tua</td><td class="colon-col"></td><td></td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">a. Ayah</td><td class="colon-col">:</td><td>${u.KerjaAyah || u.kerja_ayah || '-'}</td></tr>
+            <tr><td class="num-col"></td><td class="sub-label">b. Ibu</td><td class="colon-col">:</td><td>${u.KerjaIbu || u.kerja_ibu || '-'}</td></tr>
+            
+            <tr><td class="num-col">16.</td><td class="label-col">Nama Wali</td><td class="colon-col">:</td><td>${u.NamaWali || u.wali || '-'}</td></tr>
+            <tr><td class="num-col">17.</td><td class="label-col">Alamat Wali</td><td class="colon-col">:</td><td>${u.AlamatWali || u.alamat_wali || '-'}</td></tr>
+            <tr><td class="num-col">18.</td><td class="label-col">Pekerjaan Wali</td><td class="colon-col">:</td><td>${u.KerjaWali || u.kerja_wali || '-'}</td></tr>
         </table>
+        
+        <div style="margin-top: 60px; display: flex; justify-content: space-between; align-items: flex-end; padding-left: 20px;">
+            <div style="width: 120px; height: 160px; border: 2px solid #000; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+               ${(u.Foto || u.foto) ? `<img src="${u.Foto || u.foto}" style="width: 100%; height: 100%; object-fit: cover;">` : `<span style="font-size: 13px; text-align: center;">Pas Foto<br>3 cm x 4 cm</span>`}
+            </div>
+            <div style="text-align: left;">
+                <p style="margin:0 0 20px 0;">Surabaya, &nbsp; ${tglCetak}</p>
+                <p style="margin:0 0 80px 0;">Kepala ${user.Sekolah}</p>
+                <p style="margin:0;"><strong><u>${kepsek}</u></strong></p>
+                ${nipKepsek ? `<p style="margin:0;">NIP. ${nipKepsek}</p>` : ''}
+            </div>
+        </div>
     </div>`;
     downloadHTMLToPDF(`Identitas_${(u.Nama||u.nama).replace(/\s+/g,'_')}`, html);
 }
-
-
+    
 function renderAbsenSiswa(data) {
     let h = `<div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold text-primary"><i class="fas fa-clipboard-user me-2"></i>Catatan Kehadiran Anda</h5><button class="btn btn-success shadow-sm rounded-pill px-4 fw-bold" onclick="doAbsen()"><i class="fas fa-hand-paper me-2"></i> Isi Absen Hari Ini</button></div>`;
     h += `<div class="card border-0 shadow-sm rounded-4 overflow-hidden"><div class="table-responsive"><table class="table table-hover align-middle mb-0 text-center"><thead class="table-light"><tr><th>Tanggal</th><th>Status Kehadiran</th></tr></thead><tbody>`;
@@ -3029,9 +3043,6 @@ function openMapelFolder(mapelName) {
 // ===============================================
 // FUNGSI BARU: MENU ABSENSI GURU (BISA INPUT & REKAP)
 // ===============================================
-window.allAbsenData = [];
-window.currentFilteredAbsen = [];
-
 function renderAbsenAdmin(data) {
     window.allAbsenData = data || []; window.currentFilteredAbsen = window.allAbsenData;
     let uniqueKelas = [...new Set(window.allAbsenData.map(a => a.Kelas || a.kelas || ''))].filter(Boolean).sort();
@@ -3039,18 +3050,72 @@ function renderAbsenAdmin(data) {
 
     let h = `
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3"><h5 class="fw-bold text-primary mb-0"><i class="fas fa-clipboard-user me-2"></i>Manajemen Kehadiran Harian</h5>
-        <div><button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold me-2" onclick="bukaFormAbsenGuru()"><i class="fas fa-edit me-2"></i> Input Absen Kelas</button><button class="btn btn-outline-success rounded-pill px-4 shadow-sm fw-bold" onclick="printAbsen()"><i class="fas fa-print me-2"></i> Cetak Rekap</button></div>
+        <div><button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold me-2" onclick="bukaFormAbsenGuru()"><i class="fas fa-edit me-2"></i> Input Absen</button><button class="btn btn-outline-success rounded-pill px-4 shadow-sm fw-bold" onclick="printAbsen()"><i class="fas fa-print me-2"></i> Cetak Rekap</button></div>
     </div>
     
     <div class="row g-2 mb-3 p-3 bg-white rounded-4 shadow-sm border">
-        <div class="col-md-3"><label class="small fw-bold text-muted ms-1">Tgl Absen</label><input type="date" id="filter-absen-tgl" class="form-control bg-light border-0 rounded-pill px-3" onchange="applyFilterAbsen()"></div>
-        <div class="col-md-3"><label class="small fw-bold text-muted ms-1">Filter Role</label><select id="filter-absen-role" class="form-select bg-light border-0 rounded-pill px-3" onchange="applyFilterAbsen()"><option value="">Semua (Siswa & Guru)</option><option value="siswa">Siswa</option><option value="guru">Guru</option></select></div>
+        <div class="col-md-3"><label class="small fw-bold text-muted ms-1">Bulan Absen</label><input type="month" id="filter-absen-bulan" class="form-control bg-light border-0 rounded-pill px-3" onchange="applyFilterAbsen()"></div>
+        <div class="col-md-3"><label class="small fw-bold text-muted ms-1">Pilih Semester</label><select id="filter-absen-semester" class="form-select bg-light border-0 rounded-pill px-3" onchange="applyFilterAbsen()"><option value="Ganjil">Semester Ganjil</option><option value="Genap">Semester Genap</option></select></div>
         <div class="col-md-3"><label class="small fw-bold text-muted ms-1">Filter Kelas</label><select id="filter-absen-kelas" class="form-select bg-light border-0 rounded-pill px-3" onchange="applyFilterAbsen()">${optKelas}</select></div>
-        <div class="col-md-3"><label class="small fw-bold text-muted ms-1">Cari Nama</label><input type="text" id="filter-absen-nama" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Ketik nama..." onkeyup="applyFilterAbsen()"></div>
+        <div class="col-md-3"><label class="small fw-bold text-muted ms-1">Cari Nama</label><input type="text" id="filter-absen-nama" class="form-control bg-light border-0 rounded-pill px-3" placeholder="Ketik nama (utk Detail)" onkeyup="applyFilterAbsen()"></div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden"><div class="table-responsive"><table class="table table-hover align-middle mb-0 text-center"><thead class="table-light"><tr><th>Tanggal</th><th class="text-start">Nama</th><th>Role & Kelas</th><th>Sekolah</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="absen-tbody"></tbody></table></div></div>`;
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden"><div class="table-responsive"><table class="table table-hover align-middle mb-0 text-center"><thead class="table-light"><tr><th>Tanggal</th><th class="text-start">Nama</th><th>Kelas</th><th>Sekolah</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="absen-tbody"></tbody></table></div></div>`;
     $('#content-area').html(h); renderAbsenRows(window.allAbsenData);
+}
+
+function applyFilterAbsen() {
+    let nama = $('#filter-absen-nama').val().toLowerCase(); 
+    let bln = $('#filter-absen-bulan').val(); // format: YYYY-MM
+    let kelas = $('#filter-absen-kelas').val(); 
+    
+    window.currentFilteredAbsen = window.allAbsenData.filter(a => {
+        let tglAbsen = a.Tanggal || a.tanggal || "";
+        let matchNama = (a.Nama || a.nama || "").toLowerCase().includes(nama); 
+        let matchBln = bln === "" || tglAbsen.startsWith(bln); 
+        let matchKelas = kelas === "" || (a.Kelas || a.kelas) === kelas;
+        return matchNama && matchBln && matchKelas;
+    });
+    renderAbsenRows(window.currentFilteredAbsen);
+}
+
+function printAbsen() {
+    let data = window.currentFilteredAbsen;
+    if(!data || data.length === 0) return Swal.fire('Kosong', 'Tidak ada data untuk dicetak.', 'info');
+    
+    let blnStr = $('#filter-absen-bulan').val() || 'Semua Bulan'; 
+    let smtStr = $('#filter-absen-semester').val() || 'Ganjil';
+    let klsStr = $('#filter-absen-kelas').val() || 'Semua Kelas';
+    let namaStr = $('#filter-absen-nama').val().trim();
+
+    let html = `<div style="text-align:center; padding-bottom:10px; margin-bottom:20px;"><h3 style="margin:0; color:#0f5132; text-decoration: underline;">REKAPITULASI ABSENSI SISWA</h3><p style="margin:5px 0;"><strong>Bulan:</strong> ${blnStr} | <strong>Semester:</strong> ${smtStr} | <strong>Kelas:</strong> ${klsStr}</p></div>`;
+
+    // Jika Nama spesifik dicari, cetak DETAIL (Per Tanggal)
+    if (namaStr !== '') {
+        html += `<table style="width:100%; border-collapse:collapse; margin-bottom:30px; font-size:14px;" border="1"><thead style="background:#f1f5f9;"><tr><th style="padding:8px;">No</th><th style="padding:8px;">Tanggal</th><th style="padding:8px;">Nama Siswa</th><th style="padding:8px;">Status</th></tr></thead><tbody>`;
+        data.forEach((a, i) => { html += `<tr><td style="padding:8px; text-align:center;">${i + 1}</td><td style="padding:8px; text-align:center;">${a.Tanggal || a.tanggal}</td><td style="padding:8px;">${a.Nama || a.nama}</td><td style="padding:8px; text-align:center;">${a.Status || a.status}</td></tr>`; });
+        html += `</tbody></table>`;
+    } 
+    // Jika cetak Massal, cetak REKAP TOTAL (Satu baris per anak dgn jumlah H, I, S, A)
+    else {
+        let agg = {};
+        data.forEach(a => {
+            let n = a.Nama || a.nama;
+            if(!agg[n]) agg[n] = { Hadir:0, Sakit:0, Izin:0, Alpa:0, Kelas: a.Kelas || a.kelas };
+            let sts = a.Status || a.status;
+            if(sts === 'Hadir') agg[n].Hadir++; else if(sts === 'Sakit') agg[n].Sakit++; else if(sts === 'Izin') agg[n].Izin++; else agg[n].Alpa++;
+        });
+
+        html += `<table style="width:100%; border-collapse:collapse; margin-bottom:30px; font-size:14px;" border="1"><thead style="background:#f1f5f9;"><tr><th style="padding:8px;" rowspan="2">No</th><th style="padding:8px;" rowspan="2">Nama Siswa</th><th style="padding:8px;" rowspan="2">Kelas</th><th style="padding:8px; text-align:center;" colspan="4">Jumlah Kehadiran</th></tr><tr><th style="padding:8px; text-align:center; background:#d1e7dd;">H</th><th style="padding:8px; text-align:center; background:#cff4fc;">I</th><th style="padding:8px; text-align:center; background:#fff3cd;">S</th><th style="padding:8px; text-align:center; background:#f8d7da;">A</th></tr></thead><tbody>`;
+        let idx = 1;
+        for(let nama in agg) {
+            html += `<tr><td style="padding:8px; text-align:center;">${idx++}</td><td style="padding:8px; font-weight:bold;">${nama}</td><td style="padding:8px; text-align:center;">${agg[nama].Kelas}</td><td style="padding:8px; text-align:center;">${agg[nama].Hadir}</td><td style="padding:8px; text-align:center;">${agg[nama].Izin}</td><td style="padding:8px; text-align:center;">${agg[nama].Sakit}</td><td style="padding:8px; text-align:center;">${agg[nama].Alpa}</td></tr>`;
+        }
+        html += `</tbody></table>`;
+    }
+
+    html += `<div style="text-align:right; margin-top:40px;"><p>Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</p><p style="margin-bottom:70px;">Guru Kelas / Pengawas</p><p><strong>${user.Nama}</strong></p></div>`;
+    downloadHTMLToPDF('Rekap_Absensi', html);
 }
 
 function renderAbsenRows(data) {
@@ -3064,16 +3129,6 @@ function renderAbsenRows(data) {
         }); 
     }
     $('#absen-tbody').html(h);
-}
-
-function applyFilterAbsen() {
-    let nama = $('#filter-absen-nama').val().toLowerCase(); let tgl = $('#filter-absen-tgl').val(); let kelas = $('#filter-absen-kelas').val(); let roleFilter = $('#filter-absen-role').val().toLowerCase();
-    window.currentFilteredAbsen = window.allAbsenData.filter(a => {
-        let matchNama = (a.Nama || a.nama || "").toLowerCase().includes(nama); let matchTgl = tgl === "" || (a.Tanggal || a.tanggal) === tgl; let matchKelas = kelas === "" || (a.Kelas || a.kelas) === kelas;
-        let matchRole = roleFilter === "" || (a.Role || a.role || "").toLowerCase() === roleFilter;
-        return matchNama && matchTgl && matchKelas && matchRole;
-    });
-    renderAbsenRows(window.currentFilteredAbsen);
 }
 
 function editAbsen(id, currStatus) {
@@ -3134,16 +3189,6 @@ function bukaFormAbsenGuru() {
             }).getUserList(user.Role, user.ID, user.Sekolah);
         }
     });
-}
-
-function printAbsen() {
-    let data = window.currentFilteredAbsen;
-    if(!data || data.length === 0) return Swal.fire('Kosong', 'Tidak ada data untuk dicetak.', 'info');
-    let tglStr = $('#filter-absen-tgl').val() || 'Semua Tanggal'; let klsStr = $('#filter-absen-kelas').val() || 'Semua Kelas';
-    let html = `<div style="text-align:center; padding-bottom:10px; margin-bottom:20px;"><h3 style="margin:0; color:#0f5132; text-decoration: underline;">REKAPITULASI ABSENSI SISWA</h3><p style="margin:5px 0;"><strong>Tanggal:</strong> ${tglStr} | <strong>Kelas:</strong> ${klsStr}</p></div><table style="width:100%; border-collapse:collapse; margin-bottom:30px; font-size:14px;" border="1"><thead style="background:#f1f5f9;"><tr><th style="padding:8px;">No</th><th style="padding:8px;">Tanggal</th><th style="padding:8px;">Nama Siswa</th><th style="padding:8px;">Kelas</th><th style="padding:8px;">Status</th></tr></thead><tbody>`;
-    data.forEach((a, i) => { html += `<tr><td style="padding:8px; text-align:center;">${i + 1}</td><td style="padding:8px; text-align:center;">${a.Tanggal || a.tanggal}</td><td style="padding:8px;">${a.Nama || a.nama}</td><td style="padding:8px; text-align:center;">${a.Kelas || a.kelas}</td><td style="padding:8px; text-align:center;">${a.Status || a.status}</td></tr>`; });
-    html += `</tbody></table><div style="text-align:right; margin-top:40px;"><p>Surabaya, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</p><p style="margin-bottom:70px;">Guru Kelas / Pengawas</p><p><strong>${user.Nama}</strong></p></div>`;
-    downloadHTMLToPDF('Rekap_Absensi', html);
 }
 
 // ===============================================
