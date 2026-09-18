@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { masterTurso, getTenantClient } from '../../../lib/turso';
+import { turso } from '../../../lib/turso';
 
 export async function POST(req) {
   try {
