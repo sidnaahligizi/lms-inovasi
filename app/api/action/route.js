@@ -7,8 +7,9 @@ export async function POST(req) {
     const payload = await req.json();
     const { action, args, tenantDbUrl, tenantDbToken } = payload;
 
+    // Keamanan SAAS: Tolak akses jika tidak ada kredensial database sekolah
     if (!tenantDbUrl || !tenantDbToken) {
-      return NextResponse.json({ status: 'error', msg: 'Akses Ditolak: Kredensial Database Sekolah tidak ditemukan. Silakan login ulang.' }, { status: 401 });
+      return NextResponse.json({ status: 'error', msg: 'Akses Ditolak: Kredensial Database Sekolah tidak valid. Silakan relogin.' }, { status: 401 });
     }
 
     // Inisialisasi koneksi ke database spesifik sekolah
@@ -357,7 +358,5 @@ export async function POST(req) {
     }
 
     return NextResponse.json({ status: 'success', data: [] });
-  } catch (error) { 
-    return NextResponse.json({ status: 'error', msg: error.message }, { status: 500 }); 
-  }
+  } catch (error) { return NextResponse.json({ status: 'error', msg: error.message }, { status: 500 }); }
 }
