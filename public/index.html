@@ -479,6 +479,7 @@ class CBTRunner {
   withSuccessHandler(cb) { this.sCb = cb; return this; }
   withFailureHandler(cb) { this.fCb = cb; return this; }
 }
+
 window.google = {
   script: {
     get run() {
@@ -487,7 +488,26 @@ window.google = {
         get: function(target, prop) {
           if (prop in target) return target[prop];
           return function(...args) {
-            const payload = { action: prop, args: args };
+            
+            // 1. Ambil data sesi pengguna yang berisi informasi database dari LocalStorage
+            let savedUser = {};
+            try {
+              const storedUser = localStorage.getItem('cbt_user');
+              if (storedUser) {
+                savedUser = JSON.parse(storedUser);
+              }
+            } catch(e) {
+              console.error("Gagal membaca data sesi:", e);
+            }
+
+            // 2. Sisipkan url dan token database ke dalam payload request
+            const payload = { 
+              action: prop, 
+              args: args,
+              tenantDbUrl: savedUser.tenantDbUrl || '',
+              tenantDbToken: savedUser.tenantDbToken || ''
+            };
+
             fetch('/api/action', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
