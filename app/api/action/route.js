@@ -1,10 +1,18 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { turso } from '../../../lib/turso';
+import { getTenantClient } from '../../../lib/turso';
 
 export async function POST(req) {
   try {
-    const { action, args } = await req.json();
+    const payload = await req.json();
+    const { action, args, tenantDbUrl, tenantDbToken } = payload;
+
+    if (!tenantDbUrl || !tenantDbToken) {
+      return NextResponse.json({ status: 'error', msg: 'Akses Ditolak: Kredensial Database Sekolah tidak ditemukan. Silakan login ulang.' }, { status: 401 });
+    }
+
+    // Inisialisasi koneksi ke database spesifik sekolah
+    const tenantDb = getTenantClient(tenantDbUrl, tenantDbToken);
 
     // ==========================================
     // 1. MANAJEMEN USER & SEKOLAH
@@ -29,12 +37,12 @@ export async function POST(req) {
                 u.KerjaAyah||'-', u.KerjaIbu||'-', u.AlamatWali||'-', u.KerjaWali||'-'
             ];
 
-            await turso.execute({ 
+            await tenantDb.execute({ 
                 sql: `INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, no_kk, alamat, rt_rw, kode_pos, kelurahan, kecamatan, kabupaten, wali, akta_kelahiran, agama, anak_ke, status_keluarga, telepon_siswa, diterima_kelas, diterima_tanggal, diterima_semester, alamat_sekolah_asal, ijazah_tahun, ijazah_nomor, skhun_tahun, skhun_nomor, alamat_ortu, telepon_ortu, kerja_ayah, kerja_ibu, alamat_wali, kerja_wali) VALUES (${Array(42).fill('?').join(',')})`, 
                 args: safeData 
             });
         }
-        return NextResponse.json({ status: 'success', msg: `${usersArr.length} data siswa berhasil diupload lengkap dengan identitas!` });
+        return NextResponse.json({ status: 'success', msg: `${usersArr.length} data siswa berhasil diupload!` });
     }
 
     if (action === 'adminManageUser') {
@@ -43,11 +51,11 @@ export async function POST(req) {
         const id = d.id || ('U' + Date.now());
         
         if(d.nisn && d.nisn !== '-' && d.nisn !== '') {
-            const cekDuplicate = await turso.execute({ sql: "SELECT ID FROM Users WHERE (NISN = ? OR nisn = ?) AND (ID != ? AND id != ?)", args: [d.nisn, d.nisn, id, id] });
+            const cekDuplicate = await tenantDb.execute({ sql: "SELECT ID FROM Users WHERE (NISN = ? OR nisn = ?) AND (ID != ? AND id != ?)", args: [d.nisn, d.nisn, id, id] });
             if(cekDuplicate.rows.length > 0) return NextResponse.json({ status: 'error', msg: 'NISN sudah terdaftar pada akun lain!' });
         }
 
-        const cek = await turso.execute({ sql: "SELECT ID FROM Users WHERE ID = ? OR id = ?", args: [id, id] });
+        const cek = await tenantDb.execute({ sql: "SELECT ID FROM Users WHERE ID = ? OR id = ?", args: [id, id] });
         
         const safeArgs = [
             d.nama||'-', d.username||('user'+id), d.password||'123456', String(d.role||'siswa').toLowerCase(), d.sekolah||'-', d.kelas||'-', d.tglLahir||'-', d.foto||'', d.nis||'-', d.nisn||'-', d.jk||'L', d.tempatLahir||'-', d.ayah||'-', d.ibu||'-', d.nik||'-', d.nokk||'-', d.alamat||'-', d.rtrw||'-', d.kodepos||'-', d.kelurahan||'-', d.kecamatan||'-', d.kabupaten||'-', d.wali||'-', d.akta||'-',
@@ -55,18 +63,18 @@ export async function POST(req) {
         ];
 
         if (cek.rows.length > 0) {
-          await turso.execute({ 
+          await tenantDb.execute({ 
               sql: `UPDATE Users SET Nama=?, Username=?, Password=?, Role=?, Sekolah=?, Kelas=?, TglLahir=?, Foto=?, NIS=?, NISN=?, jk=?, tempat_lahir=?, ayah=?, ibu=?, nik=?, no_kk=?, alamat=?, rt_rw=?, kode_pos=?, kelurahan=?, kecamatan=?, kabupaten=?, wali=?, akta_kelahiran=?, agama=?, anak_ke=?, status_keluarga=?, telepon_siswa=?, diterima_kelas=?, diterima_tanggal=?, diterima_semester=?, alamat_sekolah_asal=?, ijazah_tahun=?, ijazah_nomor=?, skhun_tahun=?, skhun_nomor=?, alamat_ortu=?, telepon_ortu=?, kerja_ayah=?, kerja_ibu=?, alamat_wali=?, kerja_wali=? WHERE ID=? OR id=?`, 
               args: [...safeArgs, id, id] 
           });
         } else {
-          await turso.execute({ 
+          await tenantDb.execute({ 
               sql: `INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, Foto, NIS, NISN, jk, tempat_lahir, ayah, ibu, nik, no_kk, alamat, rt_rw, kode_pos, kelurahan, kecamatan, kabupaten, wali, akta_kelahiran, agama, anak_ke, status_keluarga, telepon_siswa, diterima_kelas, diterima_tanggal, diterima_semester, alamat_sekolah_asal, ijazah_tahun, ijazah_nomor, skhun_tahun, skhun_nomor, alamat_ortu, telepon_ortu, kerja_ayah, kerja_ibu, alamat_wali, kerja_wali) VALUES (?,${Array(42).fill('?').join(',')})`, 
               args: [id, ...safeArgs] 
           });
         }
       } else if (mode === 'delete') {
-        await turso.execute({ sql: "DELETE FROM Users WHERE ID = ? OR id = ?", args: [d.id, d.id] });
+        await tenantDb.execute({ sql: "DELETE FROM Users WHERE ID = ? OR id = ?", args: [d.id, d.id] });
       }
       return NextResponse.json({ status: 'success', msg: 'Data User berhasil disimpan!' });
     }
@@ -79,7 +87,7 @@ export async function POST(req) {
           sql += " WHERE (LOWER(TRIM(Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(sekolah)) = LOWER(TRIM(?))) AND (LOWER(TRIM(Kelas)) = LOWER(TRIM(?)) OR LOWER(TRIM(kelas)) = LOWER(TRIM(?)))";
           pArgs.push(sekolah, sekolah, kelas, kelas);
       }
-      const users = await turso.execute({ sql: sql, args: pArgs });
+      const users = await tenantDb.execute({ sql: sql, args: pArgs });
       return NextResponse.json({ status: 'success', data: users.rows });
     }
 
@@ -91,9 +99,9 @@ export async function POST(req) {
             sqlUsers += " AND LOWER(TRIM(COALESCE(Sekolah, sekolah))) = LOWER(TRIM(?)) AND LOWER(TRIM(COALESCE(Kelas, kelas))) = LOWER(TRIM(?))"; 
             pArgs.push(sekolah, kelas); 
         }
-        const users = await turso.execute({ sql: sqlUsers, args: pArgs });
-        const results = await turso.execute("SELECT COALESCE(r.SiswaID, r.siswaid) as sID, COALESCE(r.TotalNilai, r.totalnilai) as tNilai, COALESCE(e.Mapel, e.mapel) as tMapel, COALESCE(e.Judul, e.judul) as tJudul FROM Results r JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey'");
-        const absen = await turso.execute("SELECT COALESCE(SiswaID, siswaid) as sID, COALESCE(Status, status) as sts, COUNT(*) as Jml FROM Attendance GROUP BY COALESCE(SiswaID, siswaid), COALESCE(Status, status)");
+        const users = await tenantDb.execute({ sql: sqlUsers, args: pArgs });
+        const results = await tenantDb.execute("SELECT COALESCE(r.SiswaID, r.siswaid) as sID, COALESCE(r.TotalNilai, r.totalnilai) as tNilai, COALESCE(e.Mapel, e.mapel) as tMapel, COALESCE(e.Judul, e.judul) as tJudul FROM Results r JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey'");
+        const absen = await tenantDb.execute("SELECT COALESCE(SiswaID, siswaid) as sID, COALESCE(Status, status) as sts, COUNT(*) as Jml FROM Attendance GROUP BY COALESCE(SiswaID, siswaid), COALESCE(Status, status)");
 
         return NextResponse.json({ status: 'success', data: { users: users.rows, results: results.rows, absen: absen.rows } });
     }
@@ -105,13 +113,13 @@ export async function POST(req) {
         const [records] = args; 
         for(let r of records) {
             const id = 'ABS' + Date.now() + Math.floor(Math.random() * 1000);
-            await turso.execute({ sql: "INSERT INTO Attendance (AbsenID, SiswaID, Tanggal, Status) VALUES (?, ?, ?, ?)", args: [id, r.uid, r.tgl, r.status] });
+            await tenantDb.execute({ sql: "INSERT INTO Attendance (AbsenID, SiswaID, Tanggal, Status) VALUES (?, ?, ?, ?)", args: [id, r.uid, r.tgl, r.status] });
         }
         return NextResponse.json({ status: 'success', msg: 'Absensi berhasil disimpan!' });
     }
 
     if (action === 'adminUpdateAbsen') {
-        await turso.execute({ sql: "UPDATE Attendance SET Status = ? WHERE AbsenID = ? OR absenid = ?", args: [args[1], args[0], args[0]] });
+        await tenantDb.execute({ sql: "UPDATE Attendance SET Status = ? WHERE AbsenID = ? OR absenid = ?", args: [args[1], args[0], args[0]] });
         return NextResponse.json({ status: 'success' });
     }
 
@@ -124,19 +132,19 @@ export async function POST(req) {
             pArgs.push(sekolah, sekolah, kelas, kelas); 
         }
         sql += " ORDER BY COALESCE(a.Tanggal, a.tanggal) DESC";
-        const recap = await turso.execute({ sql, args: pArgs });
+        const recap = await tenantDb.execute({ sql, args: pArgs });
         return NextResponse.json({ status: 'success', data: recap.rows });
     }
 
     if (action === 'getSiswaAbsen') {
-        const history = await turso.execute({ sql: "SELECT * FROM Attendance WHERE SiswaID = ? OR siswaid = ? ORDER BY COALESCE(Tanggal, tanggal) DESC", args: [args[0], args[0]] });
+        const history = await tenantDb.execute({ sql: "SELECT * FROM Attendance WHERE SiswaID = ? OR siswaid = ? ORDER BY COALESCE(Tanggal, tanggal) DESC", args: [args[0], args[0]] });
         return NextResponse.json({ status: 'success', data: history.rows });
     }
 
     if (action === 'submitAbsen') {
       const uid = args[0];
       const dateNow = new Date().toISOString().split('T')[0];
-      await turso.execute({ sql: "INSERT INTO Attendance (AbsenID, SiswaID, Tanggal, Status) VALUES (?, ?, ?, 'Hadir')", args: ['ABS' + Date.now(), uid, dateNow] });
+      await tenantDb.execute({ sql: "INSERT INTO Attendance (AbsenID, SiswaID, Tanggal, Status) VALUES (?, ?, ?, 'Hadir')", args: ['ABS' + Date.now(), uid, dateNow] });
       return NextResponse.json({ status: 'success', msg: 'Berhasil melakukan absensi hari ini!' });
     }
 
@@ -144,23 +152,23 @@ export async function POST(req) {
       const id = 'NOTIF' + Date.now();
       let finalPesan = args[0];
       if(args[2]) { finalPesan += '|||LAMPIRAN|||' + args[2]; }
-      await turso.execute({ sql: "INSERT INTO Notifications (NotifID, Pesan, Tanggal, PembuatID) VALUES (?, ?, ?, ?)", args: [id, finalPesan, new Date().toISOString().split('T')[0], args[1]] });
+      await tenantDb.execute({ sql: "INSERT INTO Notifications (NotifID, Pesan, Tanggal, PembuatID) VALUES (?, ?, ?, ?)", args: [id, finalPesan, new Date().toISOString().split('T')[0], args[1]] });
       return NextResponse.json({ status: 'success' });
     }
 
     if (action === 'adminDeleteNotif') {
-      await turso.execute({ sql: "DELETE FROM Notifications WHERE NotifID = ? OR notifid = ?", args: [args[0], args[0]] });
+      await tenantDb.execute({ sql: "DELETE FROM Notifications WHERE NotifID = ? OR notifid = ?", args: [args[0], args[0]] });
       return NextResponse.json({ status: 'success' });
     }
 
     if (action === 'adminEditNotifText') {
       const id = args[0]; const newText = args[1];
-      const oldNotif = await turso.execute({ sql: "SELECT * FROM Notifications WHERE NotifID = ? OR notifid = ?", args: [id, id] });
+      const oldNotif = await tenantDb.execute({ sql: "SELECT * FROM Notifications WHERE NotifID = ? OR notifid = ?", args: [id, id] });
       if (oldNotif.rows.length > 0) {
          let currentMsg = oldNotif.rows[0].Pesan || oldNotif.rows[0].pesan;
          let lampiran = currentMsg.includes('|||LAMPIRAN|||') ? '|||LAMPIRAN|||' + currentMsg.split('|||LAMPIRAN|||')[1] : '';
          let finalMsg = newText + lampiran;
-         await turso.execute({ sql: "UPDATE Notifications SET Pesan = ? WHERE NotifID = ? OR notifid = ?", args: [finalMsg, id, id] });
+         await tenantDb.execute({ sql: "UPDATE Notifications SET Pesan = ? WHERE NotifID = ? OR notifid = ?", args: [finalMsg, id, id] });
       }
       return NextResponse.json({ status: 'success' });
     }
@@ -183,44 +191,44 @@ export async function POST(req) {
            notifArgs.push(userId, userId);
         }
         notifSql += " ORDER BY COALESCE(n.Tanggal, n.tanggal) DESC LIMIT 5";
-        const notifs = await turso.execute({ sql: notifSql, args: notifArgs });
+        const notifs = await tenantDb.execute({ sql: notifSql, args: notifArgs });
         output.notifications = notifs.rows;
       } catch(e) { output.notifications = []; }
 
       if (role === 'admin' || role === 'guru') {
         let exams, materials;
         if (role === 'guru') {
-            exams = await turso.execute({ sql: "SELECT * FROM Exams WHERE LOWER(COALESCE(Mapel, mapel)) != 'survey' AND (PembuatID = ? OR pembuatid = ?)", args: [userId, userId] });
-            materials = await turso.execute({ sql: "SELECT * FROM Materials WHERE PembuatID = ? OR pembuatid = ?", args: [userId, userId] });
+            exams = await tenantDb.execute({ sql: "SELECT * FROM Exams WHERE LOWER(COALESCE(Mapel, mapel)) != 'survey' AND (PembuatID = ? OR pembuatid = ?)", args: [userId, userId] });
+            materials = await tenantDb.execute({ sql: "SELECT * FROM Materials WHERE PembuatID = ? OR pembuatid = ?", args: [userId, userId] });
         } else {
-            exams = await turso.execute("SELECT * FROM Exams WHERE LOWER(COALESCE(Mapel, mapel)) != 'survey'");
-            materials = await turso.execute("SELECT * FROM Materials");
+            exams = await tenantDb.execute("SELECT * FROM Exams WHERE LOWER(COALESCE(Mapel, mapel)) != 'survey'");
+            materials = await tenantDb.execute("SELECT * FROM Materials");
         }
         
         let sqlUsers = role === 'guru' ? "SELECT * FROM Users WHERE (Role = 'siswa' OR role = 'siswa') AND (LOWER(TRIM(Sekolah)) = LOWER(TRIM(?)) OR LOWER(TRIM(sekolah)) = LOWER(TRIM(?)))" : "SELECT * FROM Users WHERE Role = 'siswa' OR role = 'siswa'";
         let pArgsUsers = role === 'guru' ? [sekolah, sekolah] : [];
-        let users = await turso.execute({ sql: sqlUsers, args: pArgsUsers });
+        let users = await tenantDb.execute({ sql: sqlUsers, args: pArgsUsers });
             
         output.exams = exams.rows;
         output.materials = materials.rows;
         output.stats = { totalSiswa: users.rows.length, totalUjian: exams.rows.length, activeUjian: exams.rows.filter(e => (e.Status||e.status) === 'Aktif').length };
 
-        const schoolRankQuery = await turso.execute(`SELECT COALESCE(u.Sekolah, u.sekolah) as Sekolah, AVG(COALESCE(r.TotalNilai, r.totalnilai)) as RataRata FROM Results r JOIN Users u ON r.SiswaID = u.ID OR r.siswaid = u.id JOIN Exams e ON r.ExamID = e.ExamID OR r.examid = e.examid WHERE LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey' ${role === 'guru' ? "AND COALESCE(e.ShowStats, e.showstats) IN ('Yes', 'Aktif')" : ""} GROUP BY COALESCE(u.Sekolah, u.sekolah) ORDER BY RataRata DESC`);
+        const schoolRankQuery = await tenantDb.execute(`SELECT COALESCE(u.Sekolah, u.sekolah) as Sekolah, AVG(COALESCE(r.TotalNilai, r.totalnilai)) as RataRata FROM Results r JOIN Users u ON r.SiswaID = u.ID OR r.siswaid = u.id JOIN Exams e ON r.ExamID = e.ExamID OR r.examid = e.examid WHERE LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey' ${role === 'guru' ? "AND COALESCE(e.ShowStats, e.showstats) IN ('Yes', 'Aktif')" : ""} GROUP BY COALESCE(u.Sekolah, u.sekolah) ORDER BY RataRata DESC`);
         output.schoolRanks = schoolRankQuery.rows;
       } else if (role === 'siswa') {
-        const exams = await turso.execute("SELECT * FROM Exams WHERE LOWER(COALESCE(Mapel, mapel)) != 'survey'");
+        const exams = await tenantDb.execute("SELECT * FROM Exams WHERE LOWER(COALESCE(Mapel, mapel)) != 'survey'");
         output.availableExams = exams.rows.filter(e => (e.Status||e.status) === 'Aktif');
-        const materials = await turso.execute("SELECT * FROM Materials");
+        const materials = await tenantDb.execute("SELECT * FROM Materials");
         output.materials = materials.rows;
         
-        const history = await turso.execute({ 
+        const history = await tenantDb.execute({ 
           sql: "SELECT COALESCE(r.ResultID, r.resultid) as ResultID, COALESCE(r.ExamID, r.examid) as ExamID, COALESCE(r.WaktuSubmit, r.waktusubmit) as WaktuSubmit, COALESCE(r.TotalNilai, r.totalnilai) as Nilai, COALESCE(e.Judul, e.judul) as Judul, COALESCE(e.AllowDownloadR, e.allowdownloadr) as AllowDownloadR, COALESCE(e.AllowDownloadQ, e.allowdownloadq) as AllowDownloadQ, COALESCE(e.ShowStats, e.showstats) as ShowStats, COALESCE(r.Pelanggaran, r.pelanggaran) as Pelanggaran FROM Results r JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE (r.SiswaID = ? OR r.siswaid = ?) AND LOWER(COALESCE(e.Mapel, e.mapel)) != 'survey'", 
           args: [userId, userId] 
         });
         output.history = history.rows;
 
         try {
-            const absenStatus = await turso.execute({ sql: "SELECT * FROM Attendance WHERE (SiswaID = ? OR siswaid = ?) AND COALESCE(Tanggal, tanggal) = date('now')", args: [userId, userId]});
+            const absenStatus = await tenantDb.execute({ sql: "SELECT * FROM Attendance WHERE (SiswaID = ? OR siswaid = ?) AND COALESCE(Tanggal, tanggal) = date('now')", args: [userId, userId]});
             output.hasAbsen = absenStatus.rows.length > 0;
         } catch(e) { output.hasAbsen = false; }
       }
@@ -232,58 +240,58 @@ export async function POST(req) {
     // ==========================================
     if (action === 'adminSaveMaterial') {
       const d = args[0]; const id = d.matId || ('MAT' + Date.now()); const dateNow = new Date().toISOString().split('T')[0];
-      const cek = await turso.execute({ sql: "SELECT MatID FROM Materials WHERE MatID = ? OR matid = ?", args: [id, id] });
-      if (cek.rows.length > 0) { await turso.execute({ sql: "UPDATE Materials SET Judul=?, Mapel=?, TargetKelas=?, Tipe=?, Konten=? WHERE MatID=? OR matid=?", args: [d.judul, d.mapel, d.kelas, d.tipe, d.konten, id, id] }); } 
-      else { await turso.execute({ sql: "INSERT INTO Materials (MatID, Mapel, TargetKelas, Judul, Tipe, Konten, Tanggal, PembuatID) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", args: [id, d.mapel, d.kelas, d.judul, d.tipe, d.konten, dateNow, d.userId] }); }
+      const cek = await tenantDb.execute({ sql: "SELECT MatID FROM Materials WHERE MatID = ? OR matid = ?", args: [id, id] });
+      if (cek.rows.length > 0) { await tenantDb.execute({ sql: "UPDATE Materials SET Judul=?, Mapel=?, TargetKelas=?, Tipe=?, Konten=? WHERE MatID=? OR matid=?", args: [d.judul, d.mapel, d.kelas, d.tipe, d.konten, id, id] }); } 
+      else { await tenantDb.execute({ sql: "INSERT INTO Materials (MatID, Mapel, TargetKelas, Judul, Tipe, Konten, Tanggal, PembuatID) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", args: [id, d.mapel, d.kelas, d.judul, d.tipe, d.konten, dateNow, d.userId] }); }
       return NextResponse.json({ status: 'success', msg: 'Materi berhasil disimpan!' });
     }
 
     if (action === 'adminDeleteMaterial') {
-      await turso.execute({ sql: "DELETE FROM Materials WHERE MatID = ? OR matid = ?", args: [args[0], args[0]] });
+      await tenantDb.execute({ sql: "DELETE FROM Materials WHERE MatID = ? OR matid = ?", args: [args[0], args[0]] });
       return NextResponse.json({ status: 'success', msg: 'Materi dihapus!' });
     }
 
     if (action === 'adminSaveExam') {
       const d = args[0]; 
       const id = (d.examId && d.examId.trim() !== '') ? d.examId : ('EX' + Date.now());
-      const cek = await turso.execute({ sql: "SELECT * FROM Exams WHERE ExamID = ? OR examid = ?", args: [id, id] });
+      const cek = await tenantDb.execute({ sql: "SELECT * FROM Exams WHERE ExamID = ? OR examid = ?", args: [id, id] });
       if (cek.rows.length > 0) {
-        await turso.execute({ sql: "UPDATE Exams SET Judul=?, Mapel=?, TargetKelas=?, Durasi=?, Token=?, StartDate=?, EndDate=?, LimitTries=?, ShowStats=?, RandomQ=?, AllowDownloadQ=?, AllowDownloadR=? WHERE ExamID=? OR examid=?", args: [d.judul, d.mapel, d.targetKelas, d.durasi, d.token || '', d.start, d.end, d.limit || 1, d.showStats, d.randomQ, d.dlSoal, d.dlHasil, id, id] });
+        await tenantDb.execute({ sql: "UPDATE Exams SET Judul=?, Mapel=?, TargetKelas=?, Durasi=?, Token=?, StartDate=?, EndDate=?, LimitTries=?, ShowStats=?, RandomQ=?, AllowDownloadQ=?, AllowDownloadR=? WHERE ExamID=? OR examid=?", args: [d.judul, d.mapel, d.targetKelas, d.durasi, d.token || '', d.start, d.end, d.limit || 1, d.showStats, d.randomQ, d.dlSoal, d.dlHasil, id, id] });
       } else {
-        await turso.execute({ sql: "INSERT INTO Exams (ExamID, Judul, Mapel, TargetKelas, Durasi, Token, StartDate, EndDate, LimitTries, ShowStats, RandomQ, AllowDownloadQ, AllowDownloadR, PembuatID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", args: [id, d.judul, d.mapel, d.targetKelas, d.durasi, d.token || '', d.start, d.end, d.limit || 1, d.showStats, d.randomQ, d.dlSoal, d.dlHasil, d.userId] });
+        await tenantDb.execute({ sql: "INSERT INTO Exams (ExamID, Judul, Mapel, TargetKelas, Durasi, Token, StartDate, EndDate, LimitTries, ShowStats, RandomQ, AllowDownloadQ, AllowDownloadR, PembuatID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", args: [id, d.judul, d.mapel, d.targetKelas, d.durasi, d.token || '', d.start, d.end, d.limit || 1, d.showStats, d.randomQ, d.dlSoal, d.dlHasil, d.userId] });
       }
       return NextResponse.json({ status: 'success', msg: 'Jadwal Ujian berhasil disimpan!' });
     }
 
     if (action === 'adminDeleteExam') {
-      await turso.execute({ sql: "DELETE FROM Exams WHERE ExamID = ? OR examid = ?", args: [args[0], args[0]] });
+      await tenantDb.execute({ sql: "DELETE FROM Exams WHERE ExamID = ? OR examid = ?", args: [args[0], args[0]] });
       return NextResponse.json({ status: 'success', msg: 'Jadwal dihapus!' });
     }
 
     if (action === 'getExamQuestions' || action === 'getSiswaSoal') {
-      const qs = await turso.execute({ sql: "SELECT * FROM Questions WHERE ExamID = ? OR examid = ?", args: [args[0], args[0]] });
+      const qs = await tenantDb.execute({ sql: "SELECT * FROM Questions WHERE ExamID = ? OR examid = ?", args: [args[0], args[0]] });
       if (action === 'getSiswaSoal') return NextResponse.json({ status: 'success', data: qs.rows });
       return NextResponse.json(qs.rows);
     }
 
     if (action === 'adminSaveSingleQuestion') {
       const eid = args[0]; const d = args[1]; const userId = args[2]; const id = d.id || ('Q' + Date.now());
-      const cek = await turso.execute({ sql: "SELECT QID FROM Questions WHERE QID = ? OR qid = ?", args: [id, id] });
+      const cek = await tenantDb.execute({ sql: "SELECT QID FROM Questions WHERE QID = ? OR qid = ?", args: [id, id] });
       if (cek.rows.length > 0) {
-        await turso.execute({ sql: "UPDATE Questions SET Tipe=?, Pertanyaan=?, Options=?, Key=?, Skor=?, Nomor=? WHERE QID=? OR qid=?", args: [d.type, d.text, JSON.stringify(d.options), JSON.stringify(d.key), d.score, d.num, id, id] });
+        await tenantDb.execute({ sql: "UPDATE Questions SET Tipe=?, Pertanyaan=?, Options=?, Key=?, Skor=?, Nomor=? WHERE QID=? OR qid=?", args: [d.type, d.text, JSON.stringify(d.options), JSON.stringify(d.key), d.score, d.num, id, id] });
       } else {
-        await turso.execute({ sql: "INSERT INTO Questions (QID, ExamID, Tipe, Pertanyaan, Options, Key, Skor, Nomor, PembuatID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", args: [id, eid, d.type, d.text, JSON.stringify(d.options), JSON.stringify(d.key), d.score, d.num, userId] });
+        await tenantDb.execute({ sql: "INSERT INTO Questions (QID, ExamID, Tipe, Pertanyaan, Options, Key, Skor, Nomor, PembuatID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", args: [id, eid, d.type, d.text, JSON.stringify(d.options), JSON.stringify(d.key), d.score, d.num, userId] });
       }
       return NextResponse.json({ status: 'success', id: id, msg: 'Soal tersimpan!' });
     }
 
     if (action === 'adminDeleteQuestion') {
-      await turso.execute({ sql: "DELETE FROM Questions WHERE QID = ? OR qid = ?", args: [args[0], args[0]] });
+      await tenantDb.execute({ sql: "DELETE FROM Questions WHERE QID = ? OR qid = ?", args: [args[0], args[0]] });
       return NextResponse.json({ status: 'success' });
     }
     
     if (action === 'adminUpdateResultScore') {
-       await turso.execute({ sql: "UPDATE Results SET TotalNilai = ? WHERE ResultID = ? OR resultid = ?", args: [args[1], args[0], args[0]] });
+       await tenantDb.execute({ sql: "UPDATE Results SET TotalNilai = ? WHERE ResultID = ? OR resultid = ?", args: [args[1], args[0], args[0]] });
        return NextResponse.json({ status: 'success', msg: 'Nilai berhasil diedit!' });
     }
 
@@ -292,10 +300,10 @@ export async function POST(req) {
     // ==========================================
     if (action === 'getExamPack') {
       const eid = args[0]; const uid = args[1];
-      const history = await turso.execute({ sql: "SELECT * FROM Results WHERE (ExamID=? OR examid=?) AND (SiswaID=? OR siswaid=?)", args: [eid, eid, uid, uid]});
+      const history = await tenantDb.execute({ sql: "SELECT * FROM Results WHERE (ExamID=? OR examid=?) AND (SiswaID=? OR siswaid=?)", args: [eid, eid, uid, uid]});
       if(history.rows.length > 0) return NextResponse.json({status: 'error', msg: 'Ujian sudah dikerjakan.'});
-      const examInfo = await turso.execute({ sql: "SELECT * FROM Exams WHERE ExamID=? OR examid=?", args:[eid, eid] });
-      const qs = await turso.execute({ sql: "SELECT * FROM Questions WHERE ExamID=? OR examid=?", args:[eid, eid] });
+      const examInfo = await tenantDb.execute({ sql: "SELECT * FROM Exams WHERE ExamID=? OR examid=?", args:[eid, eid] });
+      const qs = await tenantDb.execute({ sql: "SELECT * FROM Questions WHERE ExamID=? OR examid=?", args:[eid, eid] });
       const cleanQ = qs.rows.map(q => ({ QID: q.QID||q.qid, Tipe: q.Tipe||q.tipe, Pertanyaan: q.Pertanyaan||q.pertanyaan, Options: q.Options||q.options, Nomor: q.Nomor||q.nomor, Extra: [] }));
       return NextResponse.json({ status: 'success', data: cleanQ, duration: examInfo.rows[0].Durasi||examInfo.rows[0].durasi, judul: examInfo.rows[0].Judul||examInfo.rows[0].judul, token: examInfo.rows[0].Token||examInfo.rows[0].token });
     }
@@ -303,7 +311,7 @@ export async function POST(req) {
     if (action === 'submitExam') {
        const uid = args[0]; const eid = args[1]; const answers = args[2]; const violations = args[3];
        let rawTotalScore = 0; let detailLog = []; let maxPossibleTotalScore = 0;
-       const qs = await turso.execute({ sql: "SELECT * FROM Questions WHERE ExamID=? OR examid=?", args:[eid, eid] });
+       const qs = await tenantDb.execute({ sql: "SELECT * FROM Questions WHERE ExamID=? OR examid=?", args:[eid, eid] });
        
        qs.rows.forEach(q => { maxPossibleTotalScore += Number(q.Skor||q.skor) || 0; });
        answers.forEach(ans => {
@@ -330,7 +338,7 @@ export async function POST(req) {
        let finalScore100 = maxPossibleTotalScore > 0 ? (rawTotalScore / maxPossibleTotalScore) * 100 : 0;
        finalScore100 = Math.round(finalScore100 * 100) / 100;
 
-       await turso.execute({ sql: "INSERT INTO Results (ResultID, SiswaID, ExamID, TotalNilai, Detail, Pelanggaran) VALUES (?, ?, ?, ?, ?, ?)", args: ['RES' + Date.now(), uid, eid, finalScore100, JSON.stringify(detailLog), violations > 0 ? `Pelanggaran: ${violations}x` : "-"] });
+       await tenantDb.execute({ sql: "INSERT INTO Results (ResultID, SiswaID, ExamID, TotalNilai, Detail, Pelanggaran) VALUES (?, ?, ?, ?, ?, ?)", args: ['RES' + Date.now(), uid, eid, finalScore100, JSON.stringify(detailLog), violations > 0 ? `Pelanggaran: ${violations}x` : "-"] });
        return NextResponse.json({ status: 'success', msg: 'Berhasil dikirim', data: { score: finalScore100 } });
     }
 
@@ -339,15 +347,17 @@ export async function POST(req) {
       let sql = `SELECT COALESCE(r.ResultID, r.resultid) as ResultID, COALESCE(r.TotalNilai, r.totalnilai) as TotalNilai, COALESCE(r.WaktuSubmit, r.waktusubmit) as WaktuSubmit, COALESCE(r.Detail, r.detail) as Detail, COALESCE(u.Nama, u.nama) as NamaSiswa, COALESCE(u.Kelas, u.kelas) as KelasSiswa, COALESCE(u.Sekolah, u.sekolah) as SekolahSiswa, COALESCE(e.Judul, e.judul) as JudulUjian, COALESCE(e.Mapel, e.mapel) as Mapel, COALESCE(e.ShowStats, e.showstats) as ShowStats FROM Results r LEFT JOIN Users u ON (r.SiswaID = u.ID OR r.siswaid = u.id) LEFT JOIN Exams e ON (r.ExamID = e.ExamID OR r.examid = e.examid) WHERE 1=1`;
       let pArgs = [];
       if (role === 'guru') { sql += ` AND LOWER(TRIM(COALESCE(u.Sekolah, u.sekolah))) = LOWER(TRIM(?))`; pArgs.push(sekolah); }
-      const results = await turso.execute({ sql: sql, args: pArgs });
+      const results = await tenantDb.execute({ sql: sql, args: pArgs });
       return NextResponse.json({ status: 'success', data: results.rows });
     }
 
     if (action === 'adminDeleteResult') {
-       await turso.execute({ sql: "DELETE FROM Results WHERE ResultID=? OR resultid=?", args: [args[0], args[0]] });
+       await tenantDb.execute({ sql: "DELETE FROM Results WHERE ResultID=? OR resultid=?", args: [args[0], args[0]] });
        return NextResponse.json({ status: 'success' });
     }
 
     return NextResponse.json({ status: 'success', data: [] });
-  } catch (error) { return NextResponse.json({ status: 'error', msg: error.message }, { status: 500 }); }
+  } catch (error) { 
+    return NextResponse.json({ status: 'error', msg: error.message }, { status: 500 }); 
+  }
 }
