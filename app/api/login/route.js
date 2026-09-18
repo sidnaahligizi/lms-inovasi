@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { masterTurso, getTenantClient } from '../../../lib/turso';
+import { turso } from '../../../lib/turso';
 import jwt from 'jsonwebtoken';
 
 export async function POST(req) {
