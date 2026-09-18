@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { turso } from '../../../lib/turso';
-
+import { masterTurso, getTenantClient } from '../../../lib/turso';
 export async function POST(req) {
   try {
     const { namaSekolah, adminUsername, adminPassword } = await req.json();
