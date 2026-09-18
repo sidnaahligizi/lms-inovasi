@@ -9,7 +9,7 @@ export default function Page() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // State untuk form pendaftaran SAAS
+  // State untuk form SAAS
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [regSekolah, setRegSekolah] = useState('');
   const [regUsername, setRegUsername] = useState('');
@@ -34,7 +34,7 @@ export default function Page() {
       if (result.status === 'success') {
         const user = result.data;
         user.LogoUrl = result.logo;
-        // Simpan referensi ke database unik sekolah di storage
+        // Simpan referensi ke database unik sekolah
         user.tenantDbUrl = result.tenantDbUrl;
         user.tenantDbToken = result.tenantDbToken;
         localStorage.setItem('cbt_user', JSON.stringify(user));
@@ -60,13 +60,13 @@ export default function Page() {
       });
       const result = await res.json();
       if (result.status === 'success') {
-        alert('Pendaftaran Berhasil! Database mandiri sekolah Anda sudah siap. Silakan Masuk menggunakan Akun Anda.');
+        alert('Pendaftaran Berhasil! Database mandiri sekolah Anda sudah siap. Silakan Masuk.');
         setIsRegisterMode(false);
       } else {
         alert('Gagal Mendaftar: ' + result.msg);
       }
     } catch (err) {
-      alert('Terjadi kesalahan server saat mendaftar. Pastikan konfigurasi platform Token telah disetel.');
+      alert('Terjadi kesalahan server saat mendaftar.');
     } finally {
       setLoading(false);
     }
@@ -106,6 +106,7 @@ export default function Page() {
           color: #fff;
         }
         .wa-floating-btn i { font-size: 22px; animation: wiggle 2s linear infinite; }
+        
         @keyframes wiggle {
           0%, 7% { transform: rotateZ(0); }
           15% { transform: rotateZ(-15deg); }
@@ -117,16 +118,16 @@ export default function Page() {
         }
 
         .pricing-card {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.08);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.15);
           border-radius: 12px;
-          padding: 16px;
+          padding: 18px;
           transition: transform 0.3s ease, background 0.3s ease;
         }
         .pricing-card:hover {
           background: rgba(255, 255, 255, 0.15);
-          transform: translateY(-3px);
+          transform: translateY(-4px);
         }
       `}</style>
 
@@ -138,7 +139,7 @@ export default function Page() {
 
       <div className="d-flex flex-column flex-lg-row" style={{ minHeight: '100vh' }}>
         
-        {/* PANEL KIRI: VALUE PROPOSITION & PRICING */}
+        {/* PANEL KIRI: PROPOSISI NILAI & HARGA PAKET */}
         <div className="col-lg-7 d-flex flex-column p-4 p-md-5 text-white position-relative" 
              style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
             
@@ -158,21 +159,21 @@ export default function Page() {
                         </div>
                     </div>
 
-                    <h1 className="fw-bold mb-3" style={{ fontSize: '2.8rem', lineHeight: '1.2' }}>
+                    <h1 className="fw-bold mb-3" style={{ fontSize: '2.5rem', lineHeight: '1.2' }}>
                         Tingkatkan Kualitas <br/><span className="text-info">Pendidikan Digital</span>
                     </h1>
-                    <p className="lead opacity-75 mb-5" style={{ fontSize: '1.05rem', lineHeight: '1.6', maxWidth: '600px' }}>
-                        Dapatkan instansi *Database Turso* yang sepenuhnya terisolasi, aman, dan cepat untuk sekolah Anda. Mulai dari paket uji coba bebas biaya, hingga skala ribuan siswa.
+                    <p className="lead opacity-75 mb-4" style={{ fontSize: '1.05rem', lineHeight: '1.6', maxWidth: '600px' }}>
+                        Dapatkan Database Turso yang sepenuhnya terisolasi dan aman untuk sekolah Anda. Mulai dari paket uji coba bebas biaya, hingga skala ribuan siswa.
                     </p>
 
                     {/* Harga Berkelas (Grid) */}
-                    <h5 className="fw-bold text-white mb-3"><i className="fas fa-gem me-2 text-info"></i> Skala Paket Institusi</h5>
+                    <h5 className="fw-bold text-white mb-3 mt-4"><i className="fas fa-gem me-2 text-info"></i> Skala Paket Institusi</h5>
                     <div className="row g-3">
                         <div className="col-md-6">
-                            <div className="pricing-card">
+                            <div className="pricing-card h-100">
                                 <h6 className="fw-bold text-info mb-1">Paket Uji Coba</h6>
                                 <h4 className="fw-bold mb-2">Gratis</h4>
-                                <ul className="list-unstyled small opacity-75 mb-0">
+                                <ul className="list-unstyled small opacity-85 mb-0">
                                     <li><i className="fas fa-check text-success me-2"></i>1 Administrator</li>
                                     <li><i className="fas fa-check text-success me-2"></i>1 Guru Akses Penuh</li>
                                     <li><i className="fas fa-check text-success me-2"></i>Maksimum 5 Siswa</li>
@@ -180,32 +181,32 @@ export default function Page() {
                             </div>
                         </div>
                         <div className="col-md-6">
-                            <div className="pricing-card">
+                            <div className="pricing-card h-100">
                                 <h6 className="fw-bold text-info mb-1">Paket Basic 50</h6>
                                 <h4 className="fw-bold mb-2">Rp 150.000<span className="fs-6 opacity-50 fw-normal">/sekolah</span></h4>
-                                <ul className="list-unstyled small opacity-75 mb-0">
-                                    <li><i className="fas fa-check text-success me-2"></i>Administrator & Guru Bebas</li>
+                                <ul className="list-unstyled small opacity-85 mb-0">
+                                    <li><i className="fas fa-check text-success me-2"></i>Admin & Guru Bebas</li>
                                     <li><i className="fas fa-check text-success me-2"></i>Kapasitas 50 Siswa</li>
                                     <li><i className="fas fa-check text-success me-2"></i>Database Terdedikasi</li>
                                 </ul>
                             </div>
                         </div>
                         <div className="col-md-6">
-                            <div className="pricing-card">
+                            <div className="pricing-card h-100">
                                 <h6 className="fw-bold text-info mb-1">Paket Standar 100</h6>
                                 <h4 className="fw-bold mb-2">Rp 275.000<span className="fs-6 opacity-50 fw-normal">/sekolah</span></h4>
-                                <ul className="list-unstyled small opacity-75 mb-0">
-                                    <li><i className="fas fa-check text-success me-2"></i>Administrator & Guru Bebas</li>
+                                <ul className="list-unstyled small opacity-85 mb-0">
+                                    <li><i className="fas fa-check text-success me-2"></i>Admin & Guru Bebas</li>
                                     <li><i className="fas fa-check text-success me-2"></i>Kapasitas 100 Siswa</li>
                                 </ul>
                             </div>
                         </div>
                         <div className="col-md-6">
-                            <div className="pricing-card">
+                            <div className="pricing-card h-100">
                                 <h6 className="fw-bold text-info mb-1">Paket Premium 200</h6>
                                 <h4 className="fw-bold mb-2">Rp 350.000<span className="fs-6 opacity-50 fw-normal">/sekolah</span></h4>
-                                <ul className="list-unstyled small opacity-75 mb-0">
-                                    <li><i className="fas fa-check text-success me-2"></i>Administrator & Guru Bebas</li>
+                                <ul className="list-unstyled small opacity-85 mb-0">
+                                    <li><i className="fas fa-check text-success me-2"></i>Admin & Guru Bebas</li>
                                     <li><i className="fas fa-check text-success me-2"></i>Kapasitas 200 Siswa</li>
                                 </ul>
                             </div>
@@ -216,7 +217,7 @@ export default function Page() {
                     </div>
                 </div>
                 
-                <div className="mt-5 border-top border-secondary border-opacity-50 pt-4 text-muted small">
+                <div className="mt-4 border-top border-secondary border-opacity-50 pt-3 text-muted small">
                     Sistem Belajar TKA Inovatif | Dikembangkan oleh <strong>Pak Wanto</strong> &copy; {new Date().getFullYear()}
                 </div>
             </div>
@@ -226,7 +227,7 @@ export default function Page() {
         <div className="col-lg-5 d-flex align-items-center justify-content-center p-4 p-md-5 bg-white shadow-lg z-3">
             <div className="w-100" style={{ maxWidth: '400px' }}>
                 
-                {/* Switcher */}
+                {/* Switcher Login / Daftar */}
                 <div className="d-flex bg-light p-1 rounded-pill mb-5 border">
                     <button className={`btn w-50 rounded-pill fw-bold ${!isRegisterMode ? 'btn-primary shadow-sm' : 'btn-light text-secondary border-0'}`} 
                             onClick={() => setIsRegisterMode(false)}>
