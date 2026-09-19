@@ -34,9 +34,6 @@ export default function Page() {
       if (result.status === 'success') {
         const user = result.data;
         user.LogoUrl = result.logo;
-        // Simpan referensi ke database unik sekolah
-        user.tenantDbUrl = result.tenantDbUrl;
-        user.tenantDbToken = result.tenantDbToken;
         localStorage.setItem('cbt_user', JSON.stringify(user));
         window.location.href = '/index.html';
       } else {
@@ -60,7 +57,7 @@ export default function Page() {
       });
       const result = await res.json();
       if (result.status === 'success') {
-        alert('Pendaftaran Berhasil! Database mandiri sekolah Anda sudah siap. Silakan Masuk.');
+        alert('Pendaftaran Berhasil! Ruang LMS untuk sekolah Anda sudah siap. Silakan Masuk.');
         setIsRegisterMode(false);
       } else {
         alert('Gagal Mendaftar: ' + result.msg);
@@ -131,7 +128,6 @@ export default function Page() {
         }
       `}</style>
 
-      {/* Tombol WhatsApp Premium */}
       <a href="https://wa.me/6285895283075?text=Halo%20Pak%20Wanto,%20saya%20tertarik%20upgrade%20paket%20LMS%20SAAS%20untuk%20sekolah%20saya" className="wa-floating-btn" target="_blank" rel="noopener noreferrer">
         <i className="fab fa-whatsapp"></i>
         <span>Konsultasi Upgrade</span>
@@ -163,10 +159,9 @@ export default function Page() {
                         Tingkatkan Kualitas <br/><span className="text-info">Pendidikan Digital</span>
                     </h1>
                     <p className="lead opacity-75 mb-4" style={{ fontSize: '1.05rem', lineHeight: '1.6', maxWidth: '600px' }}>
-                        Dapatkan Database Turso yang sepenuhnya terisolasi dan aman untuk sekolah Anda. Mulai dari paket uji coba bebas biaya, hingga skala ribuan siswa.
+                        Platform CBT dan Manajemen Belajar terpusat dengan keamanan data penuh. Mulai dari paket uji coba bebas biaya, hingga skala ribuan siswa.
                     </p>
 
-                    {/* Harga Berkelas (Grid) */}
                     <h5 className="fw-bold text-white mb-3 mt-4"><i className="fas fa-gem me-2 text-info"></i> Skala Paket Institusi</h5>
                     <div className="row g-3">
                         <div className="col-md-6">
@@ -174,20 +169,20 @@ export default function Page() {
                                 <h6 className="fw-bold text-info mb-1">Paket Uji Coba</h6>
                                 <h4 className="fw-bold mb-2">Gratis</h4>
                                 <ul className="list-unstyled small opacity-85 mb-0">
-                                    <li><i className="fas fa-check text-success me-2"></i>1 Administrator</li>
-                                    <li><i className="fas fa-check text-success me-2"></i>1 Guru Akses Penuh</li>
+                                    <li><i className="fas fa-check text-success me-2"></i>1 Administrator & Guru</li>
                                     <li><i className="fas fa-check text-success me-2"></i>Maksimum 5 Siswa</li>
+                                    <li className="text-muted text-decoration-line-through"><i className="fas fa-times me-2"></i>Logo & Nama LMS Custom</li>
                                 </ul>
                             </div>
                         </div>
                         <div className="col-md-6">
-                            <div className="pricing-card h-100">
+                            <div className="pricing-card h-100 border-info">
                                 <h6 className="fw-bold text-info mb-1">Paket Basic 50</h6>
                                 <h4 className="fw-bold mb-2">Rp 150.000<span className="fs-6 opacity-50 fw-normal">/sekolah</span></h4>
                                 <ul className="list-unstyled small opacity-85 mb-0">
                                     <li><i className="fas fa-check text-success me-2"></i>Admin & Guru Bebas</li>
                                     <li><i className="fas fa-check text-success me-2"></i>Kapasitas 50 Siswa</li>
-                                    <li><i className="fas fa-check text-success me-2"></i>Database Terdedikasi</li>
+                                    <li><i className="fas fa-check text-success me-2"></i><b>Logo & Nama LMS Custom</b></li>
                                 </ul>
                             </div>
                         </div>
@@ -198,6 +193,7 @@ export default function Page() {
                                 <ul className="list-unstyled small opacity-85 mb-0">
                                     <li><i className="fas fa-check text-success me-2"></i>Admin & Guru Bebas</li>
                                     <li><i className="fas fa-check text-success me-2"></i>Kapasitas 100 Siswa</li>
+                                    <li><i className="fas fa-check text-success me-2"></i><b>Logo & Nama LMS Custom</b></li>
                                 </ul>
                             </div>
                         </div>
@@ -208,6 +204,7 @@ export default function Page() {
                                 <ul className="list-unstyled small opacity-85 mb-0">
                                     <li><i className="fas fa-check text-success me-2"></i>Admin & Guru Bebas</li>
                                     <li><i className="fas fa-check text-success me-2"></i>Kapasitas 200 Siswa</li>
+                                    <li><i className="fas fa-check text-success me-2"></i><b>Logo & Nama LMS Custom</b></li>
                                 </ul>
                             </div>
                         </div>
@@ -266,7 +263,7 @@ export default function Page() {
                     <form onSubmit={handleRegister}>
                         <div className="mb-4">
                             <h3 className="fw-bold text-dark mb-1">Registrasi Institusi</h3>
-                            <p className="text-secondary small">Sistem akan melakukan <em>provisioning</em> ruang database terisolasi untuk Anda.</p>
+                            <p className="text-secondary small">Daftarkan sekolah Anda dan dapatkan 1 akun Admin Utama.</p>
                         </div>
                         <div className="form-floating mb-3">
                             <input type="text" className="form-control bg-light border-0" placeholder="Nama Sekolah" style={{ borderRadius: '10px' }} required value={regSekolah} onChange={(e) => setRegSekolah(e.target.value)} />
@@ -281,7 +278,7 @@ export default function Page() {
                             <label className="text-secondary"><i className="fas fa-key me-2"></i>Kata Sandi Akun Admin</label>
                         </div>
                         <button type="submit" disabled={loading} className="btn btn-dark w-100 py-3 fw-bold shadow-sm" style={{ borderRadius: '10px', fontSize: '1.05rem' }}>
-                            {loading ? <><i className="fas fa-circle-notch fa-spin me-2"></i> MEMBUAT DATABASE...</> : 'PROSES PENDAFTARAN'}
+                            {loading ? <><i className="fas fa-circle-notch fa-spin me-2"></i> MEMPROSES PENDAFTARAN...</> : 'PROSES PENDAFTARAN'}
                         </button>
                     </form>
                 )}
