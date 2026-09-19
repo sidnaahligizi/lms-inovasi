@@ -489,23 +489,15 @@ window.google = {
           if (prop in target) return target[prop];
           return function(...args) {
             
-            // 1. Ambil data sesi pengguna yang berisi informasi database dari LocalStorage
             let savedUser = {};
-            try {
-              const storedUser = localStorage.getItem('cbt_user');
-              if (storedUser) {
-                savedUser = JSON.parse(storedUser);
-              }
-            } catch(e) {
-              console.error("Gagal membaca data sesi:", e);
-            }
+            try { const stored = localStorage.getItem('cbt_user'); if (stored) savedUser = JSON.parse(stored); } catch(e) {}
 
-            // 2. Sisipkan url dan token database ke dalam payload request
             const payload = { 
               action: prop, 
               args: args,
-              tenantDbUrl: savedUser.tenantDbUrl || '',
-              tenantDbToken: savedUser.tenantDbToken || ''
+              sekolah: savedUser.Sekolah || '',
+              role: String(savedUser.Role || '').toLowerCase(),
+              userId: savedUser.ID || ''
             };
 
             fetch('/api/action', {
@@ -515,11 +507,18 @@ window.google = {
             })
             .then(async res => {
               const text = await res.text();
-              if (!res.ok) throw new Error(`Server API Error (${res.status}): ${text}`);
-              try { return JSON.parse(text); } catch (e) { throw new Error("Respons bukan format JSON"); }
+              if (!res.ok) throw new Error(JSON.parse(text).msg || `Server Error (${res.status})`);
+              return JSON.parse(text);
             })
-            .then(data => { if(target.sCb) target.sCb(data); })
-            .catch(err => { console.error("DETAIL EROR CBT:", err); if(target.fCb) target.fCb(err); });
+            .then(data => { 
+                if(data.status === 'error') throw new Error(data.msg); 
+                if(target.sCb) target.sCb(data); 
+            })
+            .catch(err => { 
+                // Popup pintar jika kuota penuh atau error
+                Swal.fire('Informasi Sistem', err.message, 'warning'); 
+                if(target.fCb) target.fCb(err); 
+            });
           }
         }
       });
@@ -644,6 +643,9 @@ function handleLogout() {
     else if(role === 'admin') { 
         $('#menu-admin').removeClass('hidden'); loadPage('admin-home'); 
     } 
+    else if(role === 'superadmin') { 
+        $('#menu-superadmin').removeClass('hidden'); loadPage('super-sekolah'); 
+    }
     else { 
         Swal.fire({
             title: 'Akses Ditolak', 
@@ -743,6 +745,7 @@ function renderUsers(users) {
             <button class="btn btn-success shadow-sm me-2 rounded-pill px-3 mb-2" onclick="$('#modalUser').modal('show');$('#modalUser form')[0].reset();$('#mu-id').val('');$('#mu-foto-b64').val('');"><i class="fas fa-plus me-1"></i> Tambah Siswa</button>
             <label class="btn btn-primary shadow-sm m-0 me-2 rounded-pill px-3 mb-2"><i class="fas fa-upload me-1"></i> Upload Excel <input type="file" hidden accept=".xlsx,.xls" onchange="handleUploadUsersExcel(event)"></label>
             <button class="btn btn-outline-success shadow-sm m-0 me-2 rounded-pill px-3 mb-2" onclick="downloadUserTemplate()"><i class="fas fa-download me-1"></i> Template Excel</button>
+            <button class="btn btn-warning shadow-sm m-0 me-2 rounded-pill px-3 mb-2 fw-bold text-dark" onclick="executeExportDb()"><i class="fas fa-database me-1"></i> Backup Data Sekolah</button>
             ` : `<h5 class="fw-bold text-primary mb-0"><i class="fas fa-users me-2"></i>Data Siswa</h5>`}
             
             ${isAdmin ? `<button class="btn btn-danger shadow-sm m-0 rounded-pill px-3 mb-2 fw-bold hidden" id="btn-bulk-delete-users" onclick="bulkDeleteUsers()"><i class="fas fa-trash me-1"></i> Hapus Terpilih</button>` : ''}
@@ -3426,7 +3429,95 @@ function filterSiswaRaport() {
     let opts = `<option value="">-- Pilih Siswa yang Tersedia --</option>` + siswaFiltered.map(s => `<option value="${s.ID||s.id}">${s.Nama||s.nama}</option>`).join('');
     $('#rap-siswa').html(opts);
 }
+// Menangkap routing halaman superadmin
+const originalLoadPage = loadPage;
+loadPage = function(page) {
+    if (page === 'super-sekolah' || page === 'super-export') {
+        $('#view-exam').addClass('hidden'); $('#view-dashboard').removeClass('hidden'); $('body').removeClass('exam-mode');$('#page-title').text(page === 'super-sekolah' ? 'MANAJEMEN KUOTA' : 'EKSPOR DATABASE');
+        $('.nav-link').removeClass('active');$(`a[onclick="loadPage('${page}')"]`).addClass('active');
+        
+        showLoad(true);
+        google.script.run.withSuccessHandler(res => {
+            showLoad(false);
+            if (page === 'super-sekolah') renderSuperSekolah(res.data);
+            if (page === 'super-export') renderSuperExport(res.data);
+        }).superAdminGetTenants();
+        return;
+    }
+    // Lanjutkan ke loadPage asli untuk menu lain
+    originalLoadPage(page);
+};
 
+// UI Manajemen Kuota
+function renderSuperSekolah(data) {
+    let h = `<h5 class="fw-bold text-primary mb-3"><i class="fas fa-chart-pie me-2"></i> Manajemen Kapasitas Sekolah</h5>
+             <div class="table-responsive bg-white rounded-4 shadow-sm border"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>Nama Institusi</th><th>Paket Saat Ini</th><th class="text-center">Kapasitas Maks</th><th class="text-center">Siswa Terdaftar</th><th>Aksi Upgrade</th></tr></thead><tbody>`;
+    data.tenants.forEach(t => {
+        let terpakai = data.usage.find(u => u.Sekolah === t.NamaSekolah)?.JmlSiswa || 0;
+        let percent = Math.round((terpakai / t.MaxSiswa) * 100);
+        let color = percent >= 100 ? 'danger' : (percent >= 80 ? 'warning' : 'success');
+        h += `<tr><td class="fw-bold">${t.NamaSekolah}</td><td><span class="badge bg-secondary">${t.Paket}</span></td>
+              <td class="text-center fw-bold fs-5">${t.MaxSiswa}</td>
+              <td class="text-center"><span class="badge bg-${color} fs-6">${terpakai} Siswa</span></td>
+              <td><button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-bold" onclick="upgradeSekolah('${t.TenantID}', '${t.NamaSekolah}', '${t.Paket}', ${t.MaxSiswa})"><i class="fas fa-arrow-up me-1"></i> Upgrade Kuota</button></td></tr>`;
+    });
+    $('#content-area').html(h + `</tbody></table></div>`);
+}
+
+// Aksi Upgrade
+function upgradeSekolah(id, nama, pktSkrg, maxSkrg) {
+    Swal.fire({
+        title: `Upgrade ${nama}`,
+        html: `<div class="text-start mt-3">
+                 <label class="fw-bold small text-muted">Nama Paket (Tampilan)</label>
+                 <input id="swal-pkt" class="form-control mb-3" value="${pktSkrg}" placeholder="Cth: Premium">
+                 <label class="fw-bold small text-muted">Batas Maksimal Siswa</label>
+                 <input type="number" id="swal-kuota" class="form-control" value="${maxSkrg}">
+               </div>`,
+        showCancelButton: true, confirmButtonText: 'Simpan Konfigurasi', confirmButtonColor: '#0f5132',
+        preConfirm: () => { return [document.getElementById('swal-pkt').value, document.getElementById('swal-kuota').value] }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            showLoad(true);
+            google.script.run.withSuccessHandler(() => { Swal.fire('Sukses', 'Kapasitas berhasil ditingkatkan.', 'success'); loadPage('super-sekolah'); }).superAdminUpgradeTenant(id, result.value[0], result.value[1]);
+        }
+    });
+}
+
+// UI Export Database Superadmin
+function renderSuperExport(data) {
+    let h = `<div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold text-warning mb-0"><i class="fas fa-database me-2"></i> Ekspor Database Multi-Sekolah</h5>
+             <button class="btn btn-warning rounded-pill px-4 shadow-sm fw-bold text-dark" onclick="executeExportDb()"><i class="fas fa-download me-2"></i> Ekspor Terpilih</button></div>
+             <div class="row g-3"><div class="col-md-12"><div class="card border-0 shadow-sm rounded-4"><div class="card-body p-4">
+             <div class="mb-3 border-bottom pb-2"><input type="checkbox" class="form-check-input me-2" id="chk-all-exp" onchange="$('.chk-export').prop('checked', this.checked)"> <label class="fw-bold" for="chk-all-exp">Pilih Semua Sekolah</label></div><div class="row g-2">`;
+    data.tenants.forEach(t => {
+        h += `<div class="col-md-4"><label class="d-flex align-items-center p-2 border rounded bg-light" style="cursor:pointer;"><input type="checkbox" class="form-check-input m-0 me-3 chk-export" value="${t.NamaSekolah}"> <span class="fw-medium">${t.NamaSekolah}</span></label></div>`;
+    });
+    $('#content-area').html(h + `</div></div></div></div></div>`);
+}
+
+// Fungsi Eksekusi Export (Digunakan oleh Admin & Superadmin)
+function executeExportDb() {
+    let selected = [];
+    $('.chk-export:checked').each(function() { selected.push($(this).val()); });
+    
+    // Bypass jika yang klik adalah Admin Sekolah (hanya backup sekolahnya sendiri)
+    if (String(user.Role).toLowerCase() === 'admin') {
+        selected = [user.Sekolah]; 
+    } else if (selected.length === 0) {
+        return Swal.fire('Pilih Sekolah', 'Silakan centang minimal 1 sekolah untuk diekspor.', 'warning');
+    }
+
+    showLoad(true);
+    google.script.run.withSuccessHandler(res => {
+        showLoad(false);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(res.data.users), "Data Users");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(res.data.exams), "Data Exams");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(res.data.results), "Data Results");
+        XLSX.writeFile(wb, `Backup_CBT_${selected.length > 1 ? 'Multi_Institusi' : selected[0].replace(/\\s+/g, '_')}.xlsx`);
+    }).exportDatabase(selected);
+}
 
 </script>
 </body>
