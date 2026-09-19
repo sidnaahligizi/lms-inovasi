@@ -97,27 +97,35 @@ export async function POST(req) {
         const id = d.id || ('U' + Date.now());
         const isSiswa = String(d.role||'siswa').toLowerCase() === 'siswa';
 
+        // Proteksi Kuota Jika Nambah Siswa Baru
         if (!d.id && isSiswa) await checkQuota(1, sekolah);
 
+        // Cek username bentrok
         const cekUsername = await turso.execute({ sql: "SELECT ID FROM Users WHERE Username = ? AND ID != ? AND id != ?", args: [d.username, id, id] });
         if(cekUsername.rows.length > 0) return NextResponse.json({ status: 'error', msg: 'Username sudah digunakan oleh akun lain!' });
 
         const cek = await turso.execute({ sql: "SELECT ID FROM Users WHERE ID = ? OR id = ?", args: [id, id] });
         
+        // Kembalikan ke-40 kolom data identitas lengkap termasuk FOTO
+        const safeArgs = [
+            d.nama||'-', d.username||('user'+id), d.password||'123456', String(d.role||'siswa').toLowerCase(), d.kelas||'-', d.tglLahir||'-', d.foto||'', d.nisn||'-', d.jk||'L', d.tempat_lahir||'-', d.ayah||'-', d.ibu||'-', d.nik||'-', d.no_kk||'-', d.alamat||'-', d.rt_rw||'-', d.kode_pos||'-', d.kelurahan||'-', d.kecamatan||'-', d.kabupaten||'-', d.wali||'-', d.akta_kelahiran||'-', d.agama||'-', d.anak_ke||'-', d.status_keluarga||'-', d.telepon_siswa||'-', d.diterima_kelas||'-', d.diterima_tanggal||'-', d.diterima_semester||'-', d.alamat_sekolah_asal||'-', d.ijazah_tahun||'-', d.ijazah_nomor||'-', d.skhun_tahun||'-', d.skhun_nomor||'-', d.alamat_ortu||'-', d.telepon_ortu||'-', d.kerja_ayah||'-', d.kerja_ibu||'-', d.alamat_wali||'-', d.kerja_wali||'-'
+        ];
+
         if (cek.rows.length > 0) {
-          await turso.execute({ sql: `UPDATE Users SET Nama=?, Username=?, Password=?, Role=?, Kelas=?, TglLahir=?, NISN=? WHERE ID=? OR id=?`, args: [d.nama, d.username, d.password, d.role, d.kelas, d.tglLahir, d.nisn, id, id] });
+          await turso.execute({ 
+              sql: `UPDATE Users SET Nama=?, Username=?, Password=?, Role=?, Kelas=?, TglLahir=?, Foto=?, NISN=?, jk=?, tempat_lahir=?, ayah=?, ibu=?, nik=?, no_kk=?, alamat=?, rt_rw=?, kode_pos=?, kelurahan=?, kecamatan=?, kabupaten=?, wali=?, akta_kelahiran=?, agama=?, anak_ke=?, status_keluarga=?, telepon_siswa=?, diterima_kelas=?, diterima_tanggal=?, diterima_semester=?, alamat_sekolah_asal=?, ijazah_tahun=?, ijazah_nomor=?, skhun_tahun=?, skhun_nomor=?, alamat_ortu=?, telepon_ortu=?, kerja_ayah=?, kerja_ibu=?, alamat_wali=?, kerja_wali=? WHERE ID=? OR id=?`, 
+              args: [...safeArgs, id, id] 
+          });
         } else {
-          await turso.execute({ sql: `INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah, Kelas, TglLahir, NISN) VALUES (?,?,?,?,?,?,?,?,?)`, args: [id, d.nama, d.username, d.password, d.role, sekolah, d.kelas, d.tglLahir, d.nisn] });
+          await turso.execute({ 
+              sql: `INSERT INTO Users (ID, Sekolah, Nama, Username, Password, Role, Kelas, TglLahir, Foto, NISN, jk, tempat_lahir, ayah, ibu, nik, no_kk, alamat, rt_rw, kode_pos, kelurahan, kecamatan, kabupaten, wali, akta_kelahiran, agama, anak_ke, status_keluarga, telepon_siswa, diterima_kelas, diterima_tanggal, diterima_semester, alamat_sekolah_asal, ijazah_tahun, ijazah_nomor, skhun_tahun, skhun_nomor, alamat_ortu, telepon_ortu, kerja_ayah, kerja_ibu, alamat_wali, kerja_wali) VALUES (?, ?, ${Array(40).fill('?').join(',')})`, 
+              args: [id, sekolah, ...safeArgs] 
+          });
         }
       } else if (mode === 'delete') {
         await turso.execute({ sql: "DELETE FROM Users WHERE ID = ? OR id = ?", args: [d.id, d.id] });
       }
       return NextResponse.json({ status: 'success', msg: 'Data User berhasil disimpan!' });
-    }
-
-    if (action === 'getUserList') {
-      const users = await turso.execute({ sql: "SELECT * FROM Users WHERE Sekolah = ? OR sekolah = ?", args: [sekolah, sekolah] });
-      return NextResponse.json({ status: 'success', data: users.rows });
     }
 
     // ==========================================
