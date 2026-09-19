@@ -1,12 +1,12 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { turso } from '../../../lib/turso'; // Menggunakan koneksi database utama
+import { turso } from '../../../lib/turso';
 
 export async function POST(req) {
   try {
     const { namaSekolah, adminUsername, adminPassword } = await req.json();
 
-    // 1. Validasi Username Unik Global (Cek di Users dan SuperAdmins)
+    // 1. Cek Username Unik Global
     const cekUser = await turso.execute({
       sql: "SELECT Username FROM Users WHERE Username = ? UNION SELECT Username FROM SuperAdmins WHERE Username = ?",
       args: [adminUsername, adminUsername]
@@ -16,7 +16,7 @@ export async function POST(req) {
         return NextResponse.json({ status: 'error', msg: 'Gagal: Username sudah digunakan. Silakan pilih username lain.' });
     }
 
-    // 2. Validasi Nama Sekolah Unik
+    // 2. Cek Nama Institusi Unik
     const cekSekolah = await turso.execute({
       sql: "SELECT NamaSekolah FROM Tenants WHERE NamaSekolah = ?",
       args: [namaSekolah]
@@ -39,22 +39,13 @@ export async function POST(req) {
     await turso.execute(`CREATE TABLE IF NOT EXISTS Notifications (NotifID TEXT PRIMARY KEY, Pesan TEXT, Tanggal TEXT, PembuatID TEXT, Sekolah TEXT)`);
     await turso.execute(`CREATE TABLE IF NOT EXISTS Materials (MatID TEXT PRIMARY KEY, Mapel TEXT, TargetKelas TEXT, Judul TEXT, Tipe TEXT, Konten TEXT, Tanggal TEXT, PembuatID TEXT, Sekolah TEXT)`);
 
-    // Tambahkan Default Super Admin jika belum ada
-    const cekSuper = await turso.execute("SELECT * FROM SuperAdmins");
-    if (cekSuper.rows.length === 0) {
-        await turso.execute({
-            sql: "INSERT INTO SuperAdmins (ID, Username, Password, Nama) VALUES (?, ?, ?, ?)",
-            args: ['SA-001', 'superadmin', 'passwordsuper123', 'Super Administrator']
-        });
-    }
-
-    // 4. Daftarkan Sekolah (Default Paket Gratis: 5 Siswa)
+    // 4. Daftarkan Data Sekolah ke Tabel Tenants (Default: 5 Siswa)
     await turso.execute({
       sql: `INSERT INTO Tenants (TenantID, NamaSekolah, AdminUsername, AdminPassword, Paket, MaxAdmin, MaxGuru, MaxSiswa) VALUES (?, ?, ?, ?, 'Paket Uji Coba', 1, 1, 5)`,
       args: [tenantId, namaSekolah, adminUsername, adminPassword]
     });
 
-    // 5. Daftarkan Akun Admin Sekolah ke tabel Users
+    // 5. Daftarkan Akun Admin Sekolah ke Tabel Users
     await turso.execute({
       sql: `INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah) VALUES (?, ?, ?, ?, 'admin', ?)`,
       args: ['U' + Date.now(), 'Admin ' + namaSekolah, adminUsername, adminPassword, namaSekolah]
