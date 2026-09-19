@@ -7,25 +7,31 @@ export async function POST(req) {
   try {
     const { username, password, tglLahir } = await req.json();
 
-    // 1. Cek Super Admin
+    // 1. Cek Tabel Super Admin
     try {
       const superResult = await masterTurso.execute({
         sql: "SELECT * FROM SuperAdmins WHERE Username = ? AND Password = ?",
         args: [username, password]
       });
+      
       if (superResult.rows.length > 0) {
         const user = superResult.rows[0];
-        const token = jwt.sign({ id: user.ID, role: 'superadmin', nama: user.Nama }, process.env.JWT_SECRET || 'rahasia_cbt', { expiresIn: '12h' });
+        const token = jwt.sign(
+          { id: user.ID || user.id, role: 'superadmin', nama: user.Nama || user.nama }, 
+          process.env.JWT_SECRET || 'rahasia_cbt', 
+          { expiresIn: '12h' }
+        );
+        
         return NextResponse.json({
           status: 'success',
-          data: { ID: user.ID, Nama: user.Nama, Username: user.Username, Role: 'superadmin', Sekolah: 'Semua Sekolah' },
+          data: { ID: user.ID || user.id, Nama: user.Nama || user.nama, Username: user.Username || user.username, Role: 'superadmin', Sekolah: 'Super Admin System' },
           token: token,
           logo: 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'
         });
       }
     } catch (e) {}
 
-    // 2. Cek Users Umum (Admin Sekolah/Guru/Siswa)
+    // 2. Cek Tabel Users (Admin Sekolah, Guru, Siswa)
     try {
       const userResult = await masterTurso.execute({
         sql: "SELECT u.*, t.MaxSiswa FROM Users u LEFT JOIN Tenants t ON u.Sekolah = t.NamaSekolah WHERE u.Username = ? AND u.Password = ?",
@@ -34,16 +40,39 @@ export async function POST(req) {
 
       if (userResult.rows.length > 0) {
         const user = userResult.rows[0];
-        const role = String(user.Role).trim().toLowerCase();
+        const roleAsli = user.Role || user.role;
+        const role = String(roleAsli).trim().toLowerCase();
+        const tglLahirDB = user.TglLahir || user.tgllahir;
 
-        if (role === 'siswa' && user.TglLahir !== tglLahir) {
+        // Validasi Tanggal Lahir untuk Siswa
+        if (role === 'siswa' && tglLahirDB !== tglLahir) {
           return NextResponse.json({ status: 'error', msg: 'Tanggal Lahir salah untuk akun Anda!' });
         }
 
-        const token = jwt.sign({ id: user.ID, role: role, nama: user.Nama }, process.env.JWT_SECRET || 'rahasia_cbt', { expiresIn: '12h' });
+        const id = user.ID || user.id;
+        const nama = user.Nama || user.nama;
+
+        const token = jwt.sign(
+          { id: id, role: roleAsli, nama: nama },
+          process.env.JWT_SECRET || 'rahasia_cbt',
+          { expiresIn: '12h' }
+        );
+
+        const safeUserData = {
+           ID: id,
+           Nama: nama,
+           Username: user.Username || user.username,
+           Password: user.Password || user.password,
+           Role: roleAsli,
+           Sekolah: user.Sekolah || user.sekolah || '-',
+           Kelas: user.Kelas || user.kelas || '-',
+           TglLahir: tglLahirDB || '-',
+           Foto: user.Foto || user.foto || 'https://via.placeholder.com/60'
+        };
+
         return NextResponse.json({
           status: 'success',
-          data: { ...user, Role: role },
+          data: safeUserData,
           token: token,
           logo: 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'
         });
