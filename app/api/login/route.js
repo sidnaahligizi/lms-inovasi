@@ -7,7 +7,7 @@ export async function POST(req) {
   try {
     const { username, password, tglLahir } = await req.json();
 
-    // 1. Cek Tabel Super Admin
+    // 1. Cek Tabel Super Admin Terlebih Dahulu
     try {
       const superResult = await turso.execute({
         sql: "SELECT * FROM SuperAdmins WHERE Username = ? AND Password = ?",
@@ -24,17 +24,17 @@ export async function POST(req) {
         
         return NextResponse.json({
           status: 'success',
-          data: { ID: user.ID || user.id, Nama: user.Nama || user.nama, Username: user.Username || user.username, Role: 'superadmin', Sekolah: 'Semua Sekolah' },
+          data: { ID: user.ID || user.id, Nama: user.Nama || user.nama, Username: user.Username || user.username, Role: 'superadmin', Sekolah: 'Pusat Sistem' },
           token: token,
           logo: 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'
         });
       }
-    } catch (e) { console.log("Pengecekan SuperAdmins error/dilewati"); }
+    } catch (e) {}
 
-    // 2. Cek Tabel Users (Admin Sekolah, Guru, Siswa)
+    // 2. Jika bukan Super Admin, Cek Tabel Users (Admin Sekolah, Guru, Siswa)
     try {
       const userResult = await turso.execute({
-        sql: "SELECT u.*, t.MaxSiswa FROM Users u LEFT JOIN Tenants t ON u.Sekolah = t.NamaSekolah WHERE u.Username = ? AND u.Password = ?",
+        sql: "SELECT * FROM Users WHERE Username = ? AND Password = ?",
         args: [username, password]
       });
 
@@ -51,7 +51,6 @@ export async function POST(req) {
 
         const id = user.ID || user.id;
         const nama = user.Nama || user.nama;
-
         const token = jwt.sign({ id: id, role: roleAsli, nama: nama }, process.env.JWT_SECRET || 'rahasia_cbt', { expiresIn: '12h' });
 
         const safeUserData = {
@@ -73,7 +72,7 @@ export async function POST(req) {
           logo: 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'
         });
       }
-    } catch (e) { console.log("Pengecekan Users error/dilewati"); }
+    } catch (e) {}
 
     return NextResponse.json({ status: 'error', msg: 'Gagal Login: Username atau Password salah!' });
 
