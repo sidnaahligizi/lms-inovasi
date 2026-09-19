@@ -6,29 +6,7 @@ export async function POST(req) {
   try {
     const { namaSekolah, adminUsername, adminPassword } = await req.json();
 
-    // 1. Cek Username Unik Global
-    const cekUser = await turso.execute({
-      sql: "SELECT Username FROM Users WHERE Username = ? UNION SELECT Username FROM SuperAdmins WHERE Username = ?",
-      args: [adminUsername, adminUsername]
-    });
-    
-    if (cekUser.rows.length > 0) {
-        return NextResponse.json({ status: 'error', msg: 'Gagal: Username sudah digunakan. Silakan pilih username lain.' });
-    }
-
-    // 2. Cek Nama Institusi Unik
-    const cekSekolah = await turso.execute({
-      sql: "SELECT NamaSekolah FROM Tenants WHERE NamaSekolah = ?",
-      args: [namaSekolah]
-    });
-    
-    if (cekSekolah.rows.length > 0) {
-        return NextResponse.json({ status: 'error', msg: 'Gagal: Nama Institusi/Sekolah ini sudah terdaftar.' });
-    }
-
-    const tenantId = 'TN' + Date.now();
-    
-    // 3. Pastikan Kerangka Tabel Tersedia di Master Database
+    // 1. PASTIKAN KERANGKA TABEL TERSEDIA DULU (Agar tidak error 'no such table')
     await turso.execute(`CREATE TABLE IF NOT EXISTS SuperAdmins (ID TEXT PRIMARY KEY, Username TEXT UNIQUE, Password TEXT, Nama TEXT)`);
     await turso.execute(`CREATE TABLE IF NOT EXISTS Tenants (TenantID TEXT PRIMARY KEY, NamaSekolah TEXT, Subdomain TEXT, AdminUsername TEXT, AdminPassword TEXT, Paket TEXT, MaxAdmin INTEGER, MaxGuru INTEGER, MaxSiswa INTEGER)`);
     await turso.execute(`CREATE TABLE IF NOT EXISTS Users (ID TEXT PRIMARY KEY, Nama TEXT, Username TEXT, Password TEXT, Role TEXT, Sekolah TEXT, Kelas TEXT, TglLahir TEXT, Foto TEXT, NISN TEXT, jk TEXT, tempat_lahir TEXT, ayah TEXT, ibu TEXT, nik TEXT, no_kk TEXT, alamat TEXT, rt_rw TEXT, kode_pos TEXT, kelurahan TEXT, kecamatan TEXT, kabupaten TEXT, wali TEXT, akta_kelahiran TEXT, agama TEXT, anak_ke TEXT, status_keluarga TEXT, telepon_siswa TEXT, diterima_kelas TEXT, diterima_tanggal TEXT, diterima_semester TEXT, alamat_sekolah_asal TEXT, ijazah_tahun TEXT, ijazah_nomor TEXT, skhun_tahun TEXT, skhun_nomor TEXT, alamat_ortu TEXT, telepon_ortu TEXT, kerja_ayah TEXT, kerja_ibu TEXT, alamat_wali TEXT, kerja_wali TEXT, terjawab INTEGER, totalsoal INTEGER, status TEXT)`);
@@ -39,13 +17,44 @@ export async function POST(req) {
     await turso.execute(`CREATE TABLE IF NOT EXISTS Notifications (NotifID TEXT PRIMARY KEY, Pesan TEXT, Tanggal TEXT, PembuatID TEXT, Sekolah TEXT)`);
     await turso.execute(`CREATE TABLE IF NOT EXISTS Materials (MatID TEXT PRIMARY KEY, Mapel TEXT, TargetKelas TEXT, Judul TEXT, Tipe TEXT, Konten TEXT, Tanggal TEXT, PembuatID TEXT, Sekolah TEXT)`);
 
-    // 4. Daftarkan Data Sekolah ke Tabel Tenants (Default: 5 Siswa)
+    // Tambahkan Default Super Admin jika belum ada
+    const cekSuper = await turso.execute("SELECT * FROM SuperAdmins");
+    if (cekSuper.rows.length === 0) {
+        await turso.execute({
+            sql: "INSERT INTO SuperAdmins (ID, Username, Password, Nama) VALUES (?, ?, ?, ?)",
+            args: ['SA-001', 'superadmin', 'passwordsuper123', 'Super Administrator']
+        });
+    }
+
+    // 2. Validasi Username Unik Global (Cek di Users dan SuperAdmins)
+    const cekUser = await turso.execute({
+      sql: "SELECT Username FROM Users WHERE Username = ? UNION SELECT Username FROM SuperAdmins WHERE Username = ?",
+      args: [adminUsername, adminUsername]
+    });
+    
+    if (cekUser.rows.length > 0) {
+        return NextResponse.json({ status: 'error', msg: 'Gagal: Username sudah digunakan. Silakan pilih username lain.' });
+    }
+
+    // 3. Validasi Nama Sekolah Unik
+    const cekSekolah = await turso.execute({
+      sql: "SELECT NamaSekolah FROM Tenants WHERE NamaSekolah = ?",
+      args: [namaSekolah]
+    });
+    
+    if (cekSekolah.rows.length > 0) {
+        return NextResponse.json({ status: 'error', msg: 'Gagal: Nama Institusi/Sekolah ini sudah terdaftar.' });
+    }
+
+    const tenantId = 'TN' + Date.now();
+
+    // 4. Daftarkan Sekolah (Default Paket Gratis: 5 Siswa)
     await turso.execute({
       sql: `INSERT INTO Tenants (TenantID, NamaSekolah, AdminUsername, AdminPassword, Paket, MaxAdmin, MaxGuru, MaxSiswa) VALUES (?, ?, ?, ?, 'Paket Uji Coba', 1, 1, 5)`,
       args: [tenantId, namaSekolah, adminUsername, adminPassword]
     });
 
-    // 5. Daftarkan Akun Admin Sekolah ke Tabel Users
+    // 5. Daftarkan Akun Admin Sekolah ke tabel Users
     await turso.execute({
       sql: `INSERT INTO Users (ID, Nama, Username, Password, Role, Sekolah) VALUES (?, ?, ?, ?, 'admin', ?)`,
       args: ['U' + Date.now(), 'Admin ' + namaSekolah, adminUsername, adminPassword, namaSekolah]
