@@ -29,7 +29,6 @@ export async function POST(req) {
         const [targetSchools] = args; 
         let sqlFilter = ""; let filterArgs = [];
 
-        // Proteksi: Admin hanya bisa ekspor sekolahnya sendiri
         if (role === 'admin') {
             sqlFilter = "WHERE Sekolah = ? OR sekolah = ?";
             filterArgs = [sekolah, sekolah];
@@ -116,11 +115,43 @@ export async function POST(req) {
     }
 
     // ==========================================
-    // 4. DATA UJIAN & DASHBOARD (Terisolasi per Sekolah)
+    // 3. IDENTITAS LMS (Kustomisasi Admin)
+    // ==========================================
+    if (action === 'adminUpdateTenant') {
+        const [newAppName, newLogoUrl] = args;
+        // Coba injeksi kolom jika belum ada (Safe Alter)
+        try { await turso.execute("ALTER TABLE Tenants ADD COLUMN AppName TEXT"); } catch(e){}
+        try { await turso.execute("ALTER TABLE Tenants ADD COLUMN LogoUrl TEXT"); } catch(e){}
+
+        await turso.execute({
+            sql: "UPDATE Tenants SET AppName = ?, LogoUrl = ? WHERE NamaSekolah = ? OR namasekolah = ?",
+            args: [newAppName, newLogoUrl, sekolah, sekolah]
+        });
+        return NextResponse.json({ status: 'success', msg: 'Identitas LMS berhasil diperbarui!' });
+    }
+
+    // ==========================================
+    // 4. DATA UJIAN & DASHBOARD (Terisolasi)
     // ==========================================
     if (action === 'getDashboardData') {
-      let output = { logo: 'https://lh3.googleusercontent.com/d/1aWHmp6kNKwTYkwEMqVg34_ofiWRkymFe' };
+      let output = { logo: 'https://lh3.googleusercontent.com/d/1aWHmp6kNKwTYkwEMqVg34_ofiWRkymFe', appName: 'LMS BELAJAR INOVASI', paket: 'Paket Uji Coba' };
       
+      // Ambil Identitas LMS Sekolah
+      if (sekolah && sekolah !== 'Semua Sekolah' && sekolah !== 'Pusat Sistem') {
+          try { await turso.execute("ALTER TABLE Tenants ADD COLUMN AppName TEXT"); } catch(e){}
+          try { await turso.execute("ALTER TABLE Tenants ADD COLUMN LogoUrl TEXT"); } catch(e){}
+          
+          try {
+              const tRes = await turso.execute({ sql: "SELECT * FROM Tenants WHERE NamaSekolah = ? OR namasekolah = ?", args: [sekolah, sekolah] });
+              if (tRes.rows.length > 0) {
+                  const t = tRes.rows[0];
+                  output.paket = t.Paket || t.paket || 'Paket Uji Coba';
+                  output.appName = t.AppName || t.appname || t.NamaSekolah || t.namasekolah;
+                  output.logo = t.LogoUrl || t.logourl || output.logo;
+              }
+          } catch(e) {}
+      }
+
       const notifs = await turso.execute({ sql: "SELECT * FROM Notifications WHERE Sekolah = ? OR sekolah = ? ORDER BY COALESCE(Tanggal, tanggal) DESC LIMIT 5", args: [sekolah, sekolah] });
       output.notifications = notifs.rows;
 
