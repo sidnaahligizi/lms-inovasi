@@ -16,19 +16,17 @@ export async function POST(req) {
     const dbName = `lms-${tenantId.toLowerCase()}`;
     
     // 1. Buat Database Fisik di Turso via REST API
-    const createDbRes = await fetch(`https://api.turso.tech/v1/organizations/${orgName}/databases`, {
-      method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${platformToken}`, 
-        'Content-Type': 'application/json' 
-      },
-      body: JSON.stringify({ name: dbName, group: "default" })
-    });
-    
-    if (!createDbRes.ok) {
-       const errData = await createDbRes.json();
-       throw new Error(errData.message || "Gagal membuat database fisik di Turso.");
-    }
+    if (!orgName) throw new Error("TURSO_ORG_NAME belum dikonfigurasi di Vercel");
+const tursoApiUrl = `https://api.turso.tech/v1/organizations/${orgName.trim()}/databases`;
+
+const createDbRes = await fetch(tursoApiUrl, {
+  method: 'POST',
+  headers: { 
+    'Authorization': `Bearer ${platformToken}`, 
+    'Content-Type': 'application/json' 
+  },
+  body: JSON.stringify({ name: dbName, group: "default" })
+});
     
     // 2. Generate Token Autentikasi untuk Database Baru
     const createTokenRes = await fetch(`https://api.turso.tech/v1/organizations/${orgName}/databases/${dbName}/auth/tokens`, {
