@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { masterTurso } from '../../../lib/turso';
+import { turso } from '../../../lib/turso';
 import jwt from 'jsonwebtoken';
 
 export async function POST(req) {
@@ -9,7 +9,7 @@ export async function POST(req) {
 
     // 1. Cek Tabel Super Admin
     try {
-      const superResult = await masterTurso.execute({
+      const superResult = await turso.execute({
         sql: "SELECT * FROM SuperAdmins WHERE Username = ? AND Password = ?",
         args: [username, password]
       });
@@ -24,16 +24,16 @@ export async function POST(req) {
         
         return NextResponse.json({
           status: 'success',
-          data: { ID: user.ID || user.id, Nama: user.Nama || user.nama, Username: user.Username || user.username, Role: 'superadmin', Sekolah: 'Super Admin System' },
+          data: { ID: user.ID || user.id, Nama: user.Nama || user.nama, Username: user.Username || user.username, Role: 'superadmin', Sekolah: 'Semua Sekolah' },
           token: token,
           logo: 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'
         });
       }
-    } catch (e) {}
+    } catch (e) { console.log("Pengecekan SuperAdmins error/dilewati"); }
 
     // 2. Cek Tabel Users (Admin Sekolah, Guru, Siswa)
     try {
-      const userResult = await masterTurso.execute({
+      const userResult = await turso.execute({
         sql: "SELECT u.*, t.MaxSiswa FROM Users u LEFT JOIN Tenants t ON u.Sekolah = t.NamaSekolah WHERE u.Username = ? AND u.Password = ?",
         args: [username, password]
       });
@@ -52,11 +52,7 @@ export async function POST(req) {
         const id = user.ID || user.id;
         const nama = user.Nama || user.nama;
 
-        const token = jwt.sign(
-          { id: id, role: roleAsli, nama: nama },
-          process.env.JWT_SECRET || 'rahasia_cbt',
-          { expiresIn: '12h' }
-        );
+        const token = jwt.sign({ id: id, role: roleAsli, nama: nama }, process.env.JWT_SECRET || 'rahasia_cbt', { expiresIn: '12h' });
 
         const safeUserData = {
            ID: id,
@@ -77,9 +73,9 @@ export async function POST(req) {
           logo: 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'
         });
       }
-    } catch (e) {}
+    } catch (e) { console.log("Pengecekan Users error/dilewati"); }
 
-    return NextResponse.json({ status: 'error', msg: 'Username atau Password salah!' });
+    return NextResponse.json({ status: 'error', msg: 'Gagal Login: Username atau Password salah!' });
 
   } catch (error) {
     return NextResponse.json({ status: 'error', msg: error.message }, { status: 500 });
