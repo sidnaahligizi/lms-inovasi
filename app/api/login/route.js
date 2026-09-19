@@ -7,7 +7,7 @@ export async function POST(req) {
   try {
     const { username, password, tglLahir } = await req.json();
 
-    // 1. Cek Tabel Super Admin Terlebih Dahulu
+    // 1. Cek Tabel Super Admin
     try {
       const superResult = await turso.execute({
         sql: "SELECT * FROM SuperAdmins WHERE Username = ? AND Password = ?",
@@ -31,7 +31,7 @@ export async function POST(req) {
       }
     } catch (e) {}
 
-    // 2. Jika bukan Super Admin, Cek Tabel Users (Admin Sekolah, Guru, Siswa)
+    // 2. Cek Tabel Users (Admin Sekolah, Guru, Siswa)
     try {
       const userResult = await turso.execute({
         sql: "SELECT * FROM Users WHERE Username = ? AND Password = ?",
@@ -44,7 +44,6 @@ export async function POST(req) {
         const role = String(roleAsli).trim().toLowerCase();
         const tglLahirDB = user.TglLahir || user.tgllahir;
 
-        // Validasi Tanggal Lahir untuk Siswa
         if (role === 'siswa' && tglLahirDB !== tglLahir) {
           return NextResponse.json({ status: 'error', msg: 'Tanggal Lahir salah untuk akun Anda!' });
         }
@@ -53,21 +52,19 @@ export async function POST(req) {
         const nama = user.Nama || user.nama;
         const token = jwt.sign({ id: id, role: roleAsli, nama: nama }, process.env.JWT_SECRET || 'rahasia_cbt', { expiresIn: '12h' });
 
-        const safeUserData = {
-           ID: id,
-           Nama: nama,
-           Username: user.Username || user.username,
-           Password: user.Password || user.password,
-           Role: roleAsli,
-           Sekolah: user.Sekolah || user.sekolah || '-',
-           Kelas: user.Kelas || user.kelas || '-',
-           TglLahir: tglLahirDB || '-',
-           Foto: user.Foto || user.foto || 'https://via.placeholder.com/60'
-        };
-
         return NextResponse.json({
           status: 'success',
-          data: safeUserData,
+          data: {
+             ID: id,
+             Nama: nama,
+             Username: user.Username || user.username,
+             Password: user.Password || user.password,
+             Role: roleAsli,
+             Sekolah: user.Sekolah || user.sekolah || '-',
+             Kelas: user.Kelas || user.kelas || '-',
+             TglLahir: tglLahirDB || '-',
+             Foto: user.Foto || user.foto || 'https://via.placeholder.com/60'
+          },
           token: token,
           logo: 'https://lh3.googleusercontent.com/d/1SCvmdQxuqmX_f0gBaYt0Ob53Tws97Hnq'
         });
